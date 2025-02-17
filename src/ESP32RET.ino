@@ -43,9 +43,6 @@ uint32_t lastFlushMicros = 0;
 bool markToggle[6];
 uint32_t lastMarkTrigger = 0;
 
-#define MOSFET_PIN 25  // GPIO para controle do MOSFET
-#define INACTIVITY_TIMEOUT 600000  // 10 minutos (em milissegundos)
-
 EEPROMSettings settings;
 SystemSettings SysSettings;
 Preferences nvPrefs;
@@ -165,6 +162,9 @@ void setup()
 
     Serial.begin(115200); //for production
     //Serial.begin(115200); //for testing
+
+    pinMode(MOSFET_PIN, OUTPUT);
+    digitalWrite(MOSFET_PIN, LOW);  // Inicia com Raspberry desligada
 
     SysSettings.isWifiConnected = false;
 

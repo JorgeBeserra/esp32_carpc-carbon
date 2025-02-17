@@ -7,6 +7,9 @@
 #include "lawicel.h"
 #include "ELM327_Emulator.h"
 
+unsigned long lastCANActivity = 0;
+bool warningSent = false;
+
 CANManager::CANManager()
 {
 
@@ -55,6 +58,8 @@ void CANManager::setup()
         {
             canBuses[i]->disable();
         }
+
+        lastCANActivity = millis();
     }
 
     if (settings.systemType == 2) //Macchina 5-CAN Board
@@ -151,6 +156,8 @@ void CANManager::loop()
     size_t serialLength = serialGVRET.numAvailableBytes();
     size_t maxLength = (wifiLength > serialLength) ? wifiLength : serialLength;
 
+    bool canActive = false;  // Variável para detectar atividade CAN
+
     if (millis() > (busLoadTimer + 250)) {
         busLoadTimer = millis();
         busLoad[0].busloadPercentage = ((busLoad[0].busloadPercentage * 3) + (((busLoad[0].bitsSoFar * 1000) / busLoad[0].bitsPerQuarter) / 10)) / 4;
@@ -188,6 +195,30 @@ void CANManager::loop()
             wifiLength = wifiGVRET.numAvailableBytes();
             serialLength = serialGVRET.numAvailableBytes();
             maxLength = (wifiLength > serialLength) ? wifiLength:serialLength;
+
+            canActive = true;  // Se há mensagens, a rede está ativa
         }
+    }
+
+    // Atualiza o estado do MOSFET com base na atividade CAN
+    if (canActive) {
+        lastCANActivity = millis();
+        warningSent = false; // Reseta o aviso se houver tráfego
+        digitalWrite(MOSFET_PIN, HIGH);
+    } else {
+        unsigned long timeSinceLastActivity = millis() - lastCANActivity;
+        if (timeSinceLastActivity >= TIMEOUT_WARNING && !warningSent)
+        {
+            Logger::console("Iniciando Processo de Desligar");
+            warningSent = true; // Evita repetição do aviso
+        }
+
+        if (timeSinceLastActivity >= TIMEOUT_SHUTDOWN)
+        {
+            // Aqui o Raspberry deve interpretar esse comando e desligar
+            Logger::console("Desligando");
+            digitalWrite(MOSFET_PIN, LOW);  // Desativa o MOSFET
+        }
+        
     }
 }
