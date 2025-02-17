@@ -12,7 +12,7 @@ bool warningSent = false;
 bool shutdownCanceled = false;
 bool sleeping = false;
 
-void wakeUp()
+void CANManager::wakeUp()
 {
     Serial.println("ESP32 Acordou! Atividade detectada na rede CAN.");
     sleeping = false;
@@ -20,8 +20,7 @@ void wakeUp()
 
 CANManager::CANManager()
 {
-    pinMode(CAN_INT_PIN, INPUT_PULLUP);
-    attachInterrupt(CAN_INT_PIN, wakeUp, RISING);
+
 }
 
 void CANManager::setup()
@@ -96,6 +95,9 @@ void CANManager::setup()
     }
 
     busLoadTimer = millis();
+
+    pinMode(CAN_INT_PIN, INPUT_PULLUP);
+    attachInterrupt(CAN_INT_PIN, wakeUp, RISING);
 }
 
 void CANManager::addBits(int offset, CAN_FRAME &frame)

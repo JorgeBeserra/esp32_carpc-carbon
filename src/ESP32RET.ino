@@ -50,8 +50,6 @@ char deviceName[20];
 char otaHost[40];
 char otaFilename[100];
 
-bool sleeping = false;
-
 uint8_t espChipRevision;
 
 ELM327Emu elmEmulator;
@@ -201,12 +199,6 @@ void sendMarkTriggered(int which)
     frame.length = 0;
     frame.rtr = 0;
     canManager.displayFrame(frame, 0);
-}
-
-void wakeUp()
-{
-    Logger::console("ESP32 Acordou! Atividade detectada na rede CAN.");
-    sleeping = false;
 }
 
 /*
