@@ -9,10 +9,19 @@
 
 unsigned long lastCANActivity = 0;
 bool warningSent = false;
+bool shutdownCanceled = false;
+bool sleeping = false;
+
+void wakeUp()
+{
+    Serial.println("ESP32 Acordou! Atividade detectada na rede CAN.");
+    sleeping = false;
+}
 
 CANManager::CANManager()
 {
-
+    pinMode(CAN_INT_PIN, INPUT_PULLUP);
+    attachInterrupt(CAN_INT_PIN, wakeUp, RISING);
 }
 
 void CANManager::setup()
@@ -150,6 +159,8 @@ void CANManager::displayFrame(CAN_FRAME_FD &frame, int whichBus)
 
 void CANManager::loop()
 {
+    if (sleeping) return; // Se estiver dormindo, nada acontece até ser acordado
+
     CAN_FRAME incoming;
     CAN_FRAME_FD inFD;
     size_t wifiLength = wifiGVRET.numAvailableBytes();
@@ -204,6 +215,7 @@ void CANManager::loop()
     if (canActive) {
         lastCANActivity = millis();
         warningSent = false; // Reseta o aviso se houver tráfego
+        shutdownCanceled = false; // Se houver tráfego CAN, o desligamento é cancelado
         digitalWrite(MOSFET_PIN, HIGH);
     } else {
         unsigned long timeSinceLastActivity = millis() - lastCANActivity;
@@ -218,6 +230,11 @@ void CANManager::loop()
             // Aqui o Raspberry deve interpretar esse comando e desligar
             Logger::console("Desligando");
             digitalWrite(MOSFET_PIN, LOW);  // Desativa o MOSFET
+
+            Serial.println("Entrando em Light Sleep...");
+            sleeping = true;
+            esp_sleep_enable_ext0_wakeup((gpio_num_t)CAN_INT_PIN, 1); // Acorda com atividade no CAN
+            esp_light_sleep_start(); // ESP32 dorme
         }
         
     }

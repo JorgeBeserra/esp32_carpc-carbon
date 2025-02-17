@@ -369,7 +369,9 @@ void SerialConsole::handleConfigCmd()
         strcpy((char *)settings.WPA2Key, newString);
         writeEEPROM = true;
     } else if (cmdString == String("BRILHO")) {
-        Logger::console("Setting BRILHO to %s", newString);
+        Logger::console("Setting BRILHO to %i", newValue);
+    } else if (cmdString == String("DESLIGAR")) {
+        Logger::console("Setting DESLIGAR to %s", newString);
     } else if (cmdString == String("SYSTYPE")) {
         if (newValue < 0) newValue = 0;
         if (newValue > 2) newValue = 2;

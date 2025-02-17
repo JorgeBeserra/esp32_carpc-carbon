@@ -50,6 +50,8 @@ char deviceName[20];
 char otaHost[40];
 char otaFilename[100];
 
+bool sleeping = false;
+
 uint8_t espChipRevision;
 
 ELM327Emu elmEmulator;
@@ -70,8 +72,6 @@ CAN_COMMON *canBuses[NUM_BUSES];
 void loadSettings()
 {
     Logger::console("Loading settings....");
-
-    //Logger::console("%i\n", espChipRevision);
 
     for (int i = 0; i < NUM_BUSES; i++) canBuses[i] = nullptr;
 
@@ -111,8 +111,6 @@ void loadSettings()
         digitalWrite(SysSettings.LED_CANTX, LOW);
         digitalWrite(SysSettings.LED_CANRX, LOW);
         delay(100);
-        //pinMode(21, OUTPUT);
-        //digitalWrite(21, LOW);
         CAN0.setCANPins(GPIO_NUM_4, GPIO_NUM_5);     // use this for shield v1.3 and later
     }
 
@@ -203,6 +201,12 @@ void sendMarkTriggered(int which)
     frame.length = 0;
     frame.rtr = 0;
     canManager.displayFrame(frame, 0);
+}
+
+void wakeUp()
+{
+    Logger::console("ESP32 Acordou! Atividade detectada na rede CAN.");
+    sleeping = false;
 }
 
 /*
