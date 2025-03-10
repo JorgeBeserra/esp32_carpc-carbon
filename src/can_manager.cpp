@@ -223,17 +223,17 @@ void CANManager::loop()
         unsigned long timeSinceLastActivity = millis() - lastCANActivity;
         if (timeSinceLastActivity >= TIMEOUT_WARNING && !warningSent)
         {
-            Logger::console("Iniciando Processo de Desligar");
+            Logger::console("ShutdownForInactivity");
             warningSent = true; // Evita repetição do aviso
         }
 
         if (timeSinceLastActivity >= TIMEOUT_SHUTDOWN)
         {
             // Aqui o Raspberry deve interpretar esse comando e desligar
-            Logger::console("Desligando");
+            Logger::console("ShuttingDown");
             digitalWrite(MOSFET_PIN, LOW);  // Desativa o MOSFET
 
-            Serial.println("Entrando em Light Sleep...");
+            Serial.println("Entering sleep mode...");
             sleeping = true;
             esp_sleep_enable_ext0_wakeup((gpio_num_t)CAN_INT_PIN, 1); // Acorda com atividade no CAN
             esp_light_sleep_start(); // ESP32 dorme

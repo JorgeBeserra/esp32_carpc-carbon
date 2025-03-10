@@ -77,8 +77,8 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #define MOSFET_PIN 25  // GPIO para controle do MOSFET
 #define CAN_INT_PIN GPIO_NUM_4
-#define TIMEOUT_WARNING 30000  // 1 minuto sem atividade CAN para enviar o aviso -> Temporario em 30 segundos
-#define TIMEOUT_SHUTDOWN 60000 // 5 minutos para desligamento total -> Temporario em 1 minuto
+#define TIMEOUT_WARNING 10000  // 1 minuto sem atividade CAN para enviar o aviso -> Temporario em 30 segundos
+#define TIMEOUT_SHUTDOWN 30000 // 5 minutos para desligamento total -> Temporario em 1 minuto
 
 //How many devices to allow to connect to our WiFi telnet port?
 #define MAX_CLIENTS 1
