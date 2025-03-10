@@ -235,40 +235,8 @@ void loop()
         if (micros() - lastResistanceCheck > 500000) { // Medir a cada 1 segundo
             lastResistanceCheck = micros();
             
-            int valorADC = analogRead(34); // Pino GPIO 34 como exemplo
-            Logger::info("Valor ADC bruto 1: %d", valorADC); // Depuração do ADC
-    
-            // Configurar o ADC (necessário apenas uma vez, mas incluído aqui por segurança)
-            analogReadResolution(12); // Resolução de 12 bits
-            analogSetAttenuation(ADC_11db); // Faixa de 0-3.3V
-    
-            float tensao = (valorADC / 4095.0) * 3.3;
-            Logger::info("Tensão calculada: %.3f V", tensao); // Depuração da tensão
-    
-            float R_ref = 3300.0; // Resistor de referência de 3.3kΩ
-            float R_x = (tensao * R_ref) / (3.3 - tensao); // Resistência desconhecida
-            
-            if (R_x <= 3000) { // Limite máximo de 3kΩ
-                // Enviar via CAN
-                //CAN_FRAME frame;
-                //frame.id = 0x100; // ID arbitrário
-                //frame.extended = false;
-                //frame.length = 4;
-                //frame.rtr = 0;
-                //*(float*)frame.data.bytes = R_x; // Converter float para bytes
-                //canManager.sendFrame(canBuses[0], frame);
-    
-                // Ou enviar via serial GVRET
-      //          char buffer[50];
-    //            sprintf(buffer, "Resistencia: %.2f ohms\r\n", R_x);
-                Serial.println(R_x);
-                //serialGVRET.sendFrameToBuffer(frame, 0); // Ou use outro método para enviar texto
-                Logger::info("Resistencia medida: %.2f ohms", R_x);
-    
-                char msg[50];
-                sprintf(msg, "Resistencia medida: %.2f ohms", R_x);
-                Logger::console("%s", msg);
-            }
+            int valorADC = getAnalog(0); // Lê GPIO 34
+            Logger::info("Valor ADC bruto 1: %i", valorADC); // Depuração do ADC
         }
 
     size_t wifiLength = wifiGVRET.numAvailableBytes();

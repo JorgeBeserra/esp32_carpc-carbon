@@ -31,6 +31,7 @@ by stimmer
 */
 
 #include "sys_io.h"
+#include <driver/adc.h> // Inclua o driver ADC do ESP-IDF
 
 
 
@@ -60,6 +61,14 @@ void setup_sys_io()
 {
     uint8_t i;
 
+    // Configuração do ADC1 para GPIO 34 (A4)
+    adc1_config_width(ADC_WIDTH_BIT_12); // Resolução de 12 bits (0-4095)
+    adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_11); // GPIO 34 = ADC1_CHANNEL_6, atenuação de 11 dB
+
+    // Mapeamento do canal ADC para o array adc[] (exemplo: canal 0 do seu sistema é GPIO 34)
+    adc[0][0] = ADC1_CHANNEL_6; // Define o canal ADC1 correspondente ao GPIO 34
+    Enabled_Analogue_Pins |= (1 << ADC1_CHANNEL_6); // Ativa o canal no bitmask
+
     setupFastADC();
 }
 
@@ -80,11 +89,13 @@ because the actual work is done via DMA and then a separate polled step.
 */
 uint16_t getAnalog(uint8_t which)
 {
+    if (which >= NUM_ANALOG || adc[which][0] > 15) {
+        which = 0; // Default para o canal 0 (GPIO 34) se inválido
+    }
 
-    if (which >= NUM_ANALOG) which = 0;
-    if (adc[which][0] > 15) which = 0;
-
-    return 0;//adc_out_vals[which];
+    // Lê o valor bruto do canal ADC1 configurado
+    uint16_t adc_value = adc1_get_raw((adc1_channel_t)adc[which][0]);
+    return adc_value; // Retorna o valor de 0 a 4095 (12 bits)
 }
 
 /*
