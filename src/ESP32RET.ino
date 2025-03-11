@@ -214,6 +214,10 @@ Any bytes between checksum and 0xF1 are thrown away
 Yes, this should probably have been done more neatly but this way is likely to be the
 fastest and safest with limited function calls
 */
+
+static int ultimoValorADC = -1; // Valor inicial improvável
+static uint32_t lastResistanceCheck = 0;
+
 void loop()
 {
     //uint32_t temp32;    
@@ -231,12 +235,14 @@ void loop()
     /* wifiManager.loop(); */
 
         // Valor ADC
-        static uint32_t lastResistanceCheck = 0;
         if (micros() - lastResistanceCheck > 500000) { // Medir a cada 1 segundo
             lastResistanceCheck = micros();
             
-            int valorADC = getAnalog(0); // Lê GPIO 34
-            Logger::info("Valor ADC bruto 1: %i", valorADC); // Depuração do ADC
+            int valorADC = getAnalog(2); // Lê GPIO 34
+            if (valorADC != ultimoValorADC) { // Só faz log se o valor mudou
+                Logger::info("Valor ADC bruto 1: %i", valorADC); // Depuração do ADC
+                ultimoValorADC = valorADC; // Atualiza o último valor lido
+            }
         }
 
     size_t wifiLength = wifiGVRET.numAvailableBytes();

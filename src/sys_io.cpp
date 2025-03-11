@@ -63,11 +63,11 @@ void setup_sys_io()
 
     // Configuração do ADC1 para GPIO 34 (A4)
     adc1_config_width(ADC_WIDTH_BIT_12); // Resolução de 12 bits (0-4095)
-    adc1_config_channel_atten(ADC1_CHANNEL_6, ADC_ATTEN_DB_11); // GPIO 34 = ADC1_CHANNEL_6, atenuação de 11 dB
+    adc1_config_channel_atten(ADC1_CHANNEL_2, ADC_ATTEN_DB_11); // GPIO 34 = ADC1_CHANNEL_6, atenuação de 11 dB
 
     // Mapeamento do canal ADC para o array adc[] (exemplo: canal 0 do seu sistema é GPIO 34)
-    adc[0][0] = ADC1_CHANNEL_6; // Define o canal ADC1 correspondente ao GPIO 34
-    Enabled_Analogue_Pins |= (1 << ADC1_CHANNEL_6); // Ativa o canal no bitmask
+    adc[0][0] = ADC1_CHANNEL_2; // Define o canal ADC1 correspondente ao GPIO 34
+    Enabled_Analogue_Pins |= (1 << ADC1_CHANNEL_2); // Ativa o canal no bitmask
 
     setupFastADC();
 }
