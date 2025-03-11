@@ -230,7 +230,7 @@ void loop()
     /*if (!settings.enableBT)*/ 
     /* wifiManager.loop(); */
 
-        // Medição de resistência
+        // Valor ADC
         static uint32_t lastResistanceCheck = 0;
         if (micros() - lastResistanceCheck > 500000) { // Medir a cada 1 segundo
             lastResistanceCheck = micros();

@@ -89,7 +89,7 @@ because the actual work is done via DMA and then a separate polled step.
 */
 uint16_t getAnalog(uint8_t which)
 {
-    if (which >= NUM_ANALOG || adc[which][0] > 15) {
+    if (which >= NUM_ANALOG || adc[which][0] > 7) {
         which = 0; // Default para o canal 0 (GPIO 34) se inválido
     }
 
