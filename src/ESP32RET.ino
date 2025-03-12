@@ -178,13 +178,23 @@ void setup()
     Serial.println(CFG_BUILD_NUM);
 
     canManager.setup();
-
     SysSettings.lawicelMode = false;
     SysSettings.lawicelAutoPoll = false;
     SysSettings.lawicelTimestamping = false;
     SysSettings.lawicelPollCounter = 0;
     
     //elmEmulator.setup(); -> Limpar isso do código
+
+    // Cria tarefa para ADC
+    xTaskCreatePinnedToCore(
+        adc_task,         // Função da tarefa
+        "ADC Task",       // Nome
+        2048,             // Tamanho da pilha
+        NULL,             // Parâmetros
+        1,                // Prioridade
+        NULL,             // Handle
+        1                 // Núcleo 1
+    );
 }
  
 /*
@@ -218,6 +228,22 @@ fastest and safest with limited function calls
 static int ultimoValorADC = -1; // Valor inicial improvável
 static uint32_t lastResistanceCheck = 0;
 
+void adc_task(void *pvParameters) {
+    while (1) {
+        if (micros() - lastResistanceCheck > 500000) { // 500ms
+            lastResistanceCheck = micros();
+            int valorADC = getAnalog(2); // GPIO 34 (ADC1_CHANNEL_2)
+            if (valorADC != ultimoValorADC) {
+                char buffer[32];
+                snprintf(buffer, sizeof(buffer), "Valor ADC bruto 1: %d\n", valorADC);
+                Serial.write(buffer); // Envio direto pela serial
+                ultimoValorADC = valorADC;
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(10)); // Cede controle ao FreeRTOS
+    }
+}
+
 void loop()
 {
     //uint32_t temp32;    
@@ -235,15 +261,15 @@ void loop()
     /* wifiManager.loop(); */
 
         // Valor ADC
-        if (micros() - lastResistanceCheck > 500000) { // Medir a cada 1 segundo
-            lastResistanceCheck = micros();
+        // if (micros() - lastResistanceCheck > 500000) { // Medir a cada 1 segundo
+        //     lastResistanceCheck = micros();
             
-            int valorADC = getAnalog(2); // Lê GPIO 34
-            if (valorADC != ultimoValorADC) { // Só faz log se o valor mudou
-                Logger::info("Valor ADC bruto 1: %i", valorADC); // Depuração do ADC
-                ultimoValorADC = valorADC; // Atualiza o último valor lido
-            }
-        }
+        //     int valorADC = getAnalog(2); // Lê GPIO 34
+        //     if (valorADC != ultimoValorADC) { // Só faz log se o valor mudou
+        //         Logger::info("Valor ADC bruto 1: %i", valorADC); // Depuração do ADC
+        //         ultimoValorADC = valorADC; // Atualiza o último valor lido
+        //     }
+        // }
 
     size_t wifiLength = wifiGVRET.numAvailableBytes();
     size_t serialLength = serialGVRET.numAvailableBytes();
@@ -273,4 +299,6 @@ void loop()
     }
 
     elmEmulator.loop();
+
+    vTaskDelay(pdMS_TO_TICKS(1)); // Cede controle ao FreeRTOS no loop principal
 }
