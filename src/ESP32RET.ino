@@ -228,41 +228,46 @@ fastest and safest with limited function calls
 
 
 void adc_task(void *pvParameters) {
-    static int ultimoValorADC = -1; // Valor inicial improvável
+    static int ultimoValorADC = -1;       // Valor inicial improvável
     static uint32_t lastResistanceCheck = 0;
-    static uint32_t pressStartTime = 0; // Marca o início da pressão
-    static bool isPressed = false;      // Estado do botão
+    static uint32_t pressStartTime = 0;   // Marca o início da pressão
+    static bool isPressed = false;        // Estado do botão
+    static uint32_t lastHoldSent = 0;     // Última vez que "Hold" foi enviado
+    const uint32_t HOLD_INTERVAL = 500000; // Intervalo de 500ms para "Hold"
 
     while (1) {
         if (micros() - lastResistanceCheck > 100000) { // 100ms para maior responsividade
             lastResistanceCheck = micros();
             int valorADC = getAnalog(2); // GPIO 34 (ADC1_CHANNEL_2)
             
-            if (valorADC >= 2450) { // Só processa valores >= 2450
-                if (!isPressed) { // Botão recém-pressionado
-                    pressStartTime = micros();
-                    isPressed = true;
-                } else { // Botão já está pressionado
-                    uint32_t pressDuration = micros() - pressStartTime;
-                    if (pressDuration > 500000) { // 500ms = pressão mantida
-                        if (valorADC != ultimoValorADC) { // Envia apenas na mudança
-                            char buffer[32];
-                            snprintf(buffer, sizeof(buffer), "ADC Hold: %d\n", valorADC);
-                            Serial.write(buffer);
-                            ultimoValorADC = valorADC;
-                        }
-                    }
-                }
-            } else { // Valor < 2450 (neutro)
+
+            if (valorADC >= 2380 && valorADC <= 2450) { // Neutro (ajustado com base nos logs)
                 if (isPressed) { // Botão foi solto
                     uint32_t pressDuration = micros() - pressStartTime;
-                    if (pressDuration <= 500000 && ultimoValorADC >= 2450) { // Toque rápido
+                    if (pressDuration <= 500000 && ultimoValorADC > 2450) { // Toque rápido
                         char buffer[32];
                         snprintf(buffer, sizeof(buffer), "ADC Click: %d\n", ultimoValorADC);
                         Serial.write(buffer);
                     }
                     isPressed = false;
-                    ultimoValorADC = -1; // Reseta para detectar próxima pressão
+                    ultimoValorADC = valorADC; // Atualiza para o valor neutro
+                }
+            } else if (valorADC > 2450) { // Só processa valores > 2450 (botão pressionado)
+                if (!isPressed) { // Botão recém-pressionado
+                    pressStartTime = micros();
+                    isPressed = true;
+                    lastHoldSent = 0; // Reseta o temporizador de "Hold"
+                } else { // Botão já está pressionado
+                    uint32_t pressDuration = micros() - pressStartTime;
+                    if (pressDuration > 500000) { // 500ms = pressão mantida
+                        if (micros() - lastHoldSent >= HOLD_INTERVAL) { // Envia a cada 500ms
+                            char buffer[32];
+                            snprintf(buffer, sizeof(buffer), "ADC Hold: %d\n", valorADC);
+                            Serial.write(buffer);
+                            lastHoldSent = micros();
+                            ultimoValorADC = valorADC;
+                        }
+                    }
                 }
             }
         }
