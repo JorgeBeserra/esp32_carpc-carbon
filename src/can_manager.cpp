@@ -12,9 +12,8 @@ bool warningSent = false;
 bool shutdownCanceled = false;
 bool sleeping = false;
 
-void CANManager::wakeUp()
+void IRAM_ATTR CANManager::wakeUp()
 {
-    Serial.println("ESP32 Acordou! Atividade detectada na rede CAN.");
     sleeping = false;
 }
 
@@ -102,16 +101,14 @@ void CANManager::setup()
 
 void CANManager::addBits(int offset, CAN_FRAME &frame)
 {
-    if (offset < 0) return;
-    if (offset >= NUM_BUSES) return;
+    if (offset < 0 || offset >= NUM_BUSES) return;
     busLoad[offset].bitsSoFar += 41 + (frame.length * 9);
     if (frame.extended) busLoad[offset].bitsSoFar += 18;
 }
 
 void CANManager::addBits(int offset, CAN_FRAME_FD &frame)
 {
-    if (offset < 0) return;
-    if (offset >= NUM_BUSES) return;
+    if (offset < 0 || offset >= NUM_BUSES) return;
     busLoad[offset].bitsSoFar += 41 + (frame.length * 9);
     if (frame.extended) busLoad[offset].bitsSoFar += 18;
 }
@@ -171,6 +168,7 @@ void CANManager::loop()
 
     bool canActive = false;  // Variável para detectar atividade CAN
 
+    // Calcula carga do barramento a cada 250ms
     if (millis() > (busLoadTimer + 250)) {
         busLoadTimer = millis();
         busLoad[0].busloadPercentage = ((busLoad[0].busloadPercentage * 3) + (((busLoad[0].bitsSoFar * 1000) / busLoad[0].bitsPerQuarter) / 10)) / 4;
@@ -185,11 +183,15 @@ void CANManager::loop()
         }
     }
 
+    // Limita o número de mensagens processadas por iteração
+    const int MAX_MESSAGES_PER_LOOP = 10; // Ajustável
+    int messagesProcessed = 0;
+
     for (int i = 0; i < SysSettings.numBuses; i++)
     {
-        if (!canBuses[i]) continue;
-        if (!settings.canSettings[i].enabled) continue;
-        while ( (canBuses[i]->available() > 0) && (maxLength < (WIFI_BUFF_SIZE - 80)))
+        if (!canBuses[i] || !settings.canSettings[i].enabled) continue;
+
+        while (canBuses[i]->available() > 0 && maxLength < (WIFI_BUFF_SIZE - 80) && messagesProcessed < MAX_MESSAGES_PER_LOOP)
         {
             if (settings.canSettings[i].fdMode == 0)
             {
@@ -205,12 +207,17 @@ void CANManager::loop()
             }
             
             if ( (incoming.id > 0x7DF && incoming.id < 0x7F0) || elmEmulator.getMonitorMode() ) elmEmulator.processCANReply(incoming);
+
             wifiLength = wifiGVRET.numAvailableBytes();
             serialLength = serialGVRET.numAvailableBytes();
             maxLength = (wifiLength > serialLength) ? wifiLength:serialLength;
 
             canActive = true;  // Se há mensagens, a rede está ativa
+            messagesProcessed++;
         }
+
+        // Cede controle após processar algumas mensagens
+        if (messagesProcessed >= MAX_MESSAGES_PER_LOOP) break;
     }
 
     // Atualiza o estado do MOSFET com base na atividade CAN
@@ -240,4 +247,7 @@ void CANManager::loop()
         }
         
     }
+
+    // Cede controle ao FreeRTOS ao final de cada iteração
+    vTaskDelay(pdMS_TO_TICKS(1)); // 1ms para garantir estabilidade
 }
