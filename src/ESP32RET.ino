@@ -238,7 +238,6 @@ void adc_task(void *pvParameters) {
             lastResistanceCheck = micros();
             int valorADC = getAnalog(2); // GPIO 34 (ADC1_CHANNEL_2)
             
-
             if (valorADC >= 2450) { // Só processa valores >= 2450
                 if (!isPressed) { // Botão recém-pressionado
                     pressStartTime = micros();
@@ -327,5 +326,5 @@ void loop()
 
     elmEmulator.loop();
 
-    vTaskDelay(pdMS_TO_TICKS(1)); // Cede controle ao FreeRTOS no loop principal
+    vTaskDelay(pdMS_TO_TICKS(20)); // Cede controle ao FreeRTOS no loop principal
 }

@@ -48,7 +48,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //This keeps the latency more consistent. Otherwise the buffer could partially fill and never send.
 #define SER_BUFF_FLUSH_INTERVAL 20000
 
-#define CFG_BUILD_NUM   620
+#define CFG_BUILD_NUM   621
 #define CFG_VERSION "Alpha Feb 12 2025"
 #define PREF_NAME   "ESP32RET"
 #define EVTV_NAME   "ESP32RET"
