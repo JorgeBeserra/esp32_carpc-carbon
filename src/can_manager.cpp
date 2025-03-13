@@ -12,6 +12,10 @@ bool warningSent = false;
 bool shutdownCanceled = false;
 bool sleeping = false;
 
+// Lista de IDs a filtrar apenas na serial
+const uint32_t SERIAL_FILTERED_IDS[] = {0x3B3, 0x3AA, 0x202};
+const int NUM_SERIAL_FILTERED_IDS = sizeof(SERIAL_FILTERED_IDS) / sizeof(SERIAL_FILTERED_IDS[0]);
+
 void IRAM_ATTR CANManager::wakeUp()
 {
     sleeping = false;
@@ -139,7 +143,20 @@ void CANManager::displayFrame(CAN_FRAME &frame, int whichBus)
     else 
     {
         if (SysSettings.isWifiActive) wifiGVRET.sendFrameToBuffer(frame, whichBus);
-        else serialGVRET.sendFrameToBuffer(frame, whichBus);
+        else 
+        {
+            // Aplica filtro apenas para serial
+            bool shouldSendToSerial = false;
+            for (int j = 0; j < NUM_SERIAL_FILTERED_IDS; j++) {
+                if (frame.id == SERIAL_FILTERED_IDS[j]) {
+                    shouldSendToSerial = true;
+                    break;
+                }
+            }
+            if (shouldSendToSerial) {
+                serialGVRET.sendFrameToBuffer(frame, whichBus);
+            }
+        }
     }
 }
 
@@ -152,7 +169,20 @@ void CANManager::displayFrame(CAN_FRAME_FD &frame, int whichBus)
     else 
     {
         if (SysSettings.isWifiActive) wifiGVRET.sendFrameToBuffer(frame, whichBus);
-        else serialGVRET.sendFrameToBuffer(frame, whichBus);
+        else 
+        {
+            // Aplica filtro apenas para serial
+            bool shouldSendToSerial = false;
+            for (int j = 0; j < NUM_SERIAL_FILTERED_IDS; j++) {
+                if (frame.id == SERIAL_FILTERED_IDS[j]) {
+                    shouldSendToSerial = true;
+                    break;
+                }
+            }
+            if (shouldSendToSerial) {
+                serialGVRET.sendFrameToBuffer(frame, whichBus);
+            }
+        }
     }
 }
 

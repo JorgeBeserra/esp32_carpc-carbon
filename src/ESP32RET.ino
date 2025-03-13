@@ -225,6 +225,116 @@ Yes, this should probably have been done more neatly but this way is likely to b
 fastest and safest with limited function calls
 */
 
+// volume +
+
+// ADC Click: 3890
+// ADC Click: 3891
+// ADC Click: 3893
+// ADC Click: 3890
+// ADC Click: 3892
+// ADC Click: 3896
+// ADC Click: 3892
+// ADC Click: 3892
+// ADC Click: 3897
+// ADC Click: 3892
+// ADC Click: 3890
+// ADC Click: 3892
+
+// volume -
+
+// ADC Click: 4048
+// ADC Click: 4047
+// ADC Click: 4047
+// ADC Click: 4047
+// ADC Click: 4048
+// ADC Click: 4047
+// ADC Click: 4047
+// ADC Click: 4050
+// ADC Click: 4048
+// ADC Click: 4040
+// ADC Click: 4049
+// ADC Click: 4047
+// ADC Click: 4048
+// ADC Click: 4047
+
+
+// Proxima Musica
+
+// ADC Click: 3668
+// ADC Click: 3664
+// ADC Click: 3670
+// ADC Click: 3665
+// ADC Click: 3668
+// ADC Click: 3665
+// ADC Click: 3666
+// ADC Click: 3667
+// ADC Click: 3667
+// ADC Click: 3665
+// ADC Click: 3665
+// ADC Click: 3664
+// ADC Click: 3666
+// ADC Click: 3666
+// ADC Click: 3663
+
+
+// musica anterior
+
+// ADC Click: 3358
+// ADC Click: 3358
+// ADC Click: 3358
+// ADC Click: 3358
+// ADC Click: 3343
+// ADC Click: 3364
+// ADC Click: 3356
+// ADC Click: 3358
+// ADC Click: 3357
+// ADC Click: 3358
+// ADC Click: 3355
+// ADC Click: 3357
+// ADC Click: 3355
+// ADC Click: 3359
+// ADC Click: 3358
+// ADC Click: 3357
+// ADC Click: 3358
+// ADC Click: 3359
+// ADC Click: 3356
+// ADC Click: 3359
+// ADC Click: 3356
+// ADC Click: 3359
+// ADC Click: 3360
+// ADC Click: 3358
+// ADC Click: 3359
+// ADC Click: 3357
+// ADC Click: 3354
+// ADC Click: 3359
+// ADC Click: 3353
+// ADC Click: 3353
+// ADC Click: 3356
+// ADC Click: 3355
+// ADC Click: 3356
+// ADC Click: 3354
+// ADC Click: 3357
+// ADC Click: 3354
+
+
+// muta
+
+// ADC Click: 4095
+// ADC Click: 4095
+// ADC Click: 4095
+// ADC Click: 4095
+// ADC Click: 4095
+// ADC Click: 4095
+// ADC Click: 4095
+// ADC Click: 4095
+// ADC Click: 4095
+// ADC Click: 4095
+// ADC Click: 4095
+// ADC Click: 4095
+// ADC Click: 4095
+// ADC Click: 4095
+// ADC Click: 4095
+
 
 
 void adc_task(void *pvParameters) {
@@ -240,11 +350,14 @@ void adc_task(void *pvParameters) {
             lastResistanceCheck = micros();
             int valorADC = getAnalog(2); // GPIO 34 (ADC1_CHANNEL_2)
             
+            // char buffer[32];
+            // snprintf(buffer, sizeof(buffer), "ADC Bruto: %d\n", valorADC);
+            // Serial.write(buffer);
 
             if (valorADC >= 2380 && valorADC <= 2450) { // Neutro (ajustado com base nos logs)
                 if (isPressed) { // Botão foi solto
                     uint32_t pressDuration = micros() - pressStartTime;
-                    if (pressDuration <= 500000 && ultimoValorADC > 2450) { // Toque rápido
+                    if (pressDuration <= 750000 && ultimoValorADC > 2450) { // Toque rápido
                         char buffer[32];
                         snprintf(buffer, sizeof(buffer), "ADC Click: %d\n", ultimoValorADC);
                         Serial.write(buffer);
@@ -257,9 +370,10 @@ void adc_task(void *pvParameters) {
                     pressStartTime = micros();
                     isPressed = true;
                     lastHoldSent = 0; // Reseta o temporizador de "Hold"
+
                 } else { // Botão já está pressionado
                     uint32_t pressDuration = micros() - pressStartTime;
-                    if (pressDuration > 500000) { // 500ms = pressão mantida
+                    if (pressDuration > 750000) { // 500ms = pressão mantida
                         if (micros() - lastHoldSent >= HOLD_INTERVAL) { // Envia a cada 500ms
                             char buffer[32];
                             snprintf(buffer, sizeof(buffer), "ADC Hold: %d\n", valorADC);
@@ -268,6 +382,17 @@ void adc_task(void *pvParameters) {
                             ultimoValorADC = valorADC;
                         }
                     }
+                }
+
+                if (isPressed) { // Botão foi solto
+                    uint32_t pressDuration = micros() - pressStartTime;
+                    if (pressDuration <= 750000 && valorADC > 2450) { // Toque rápido
+                        char buffer[32];
+                        snprintf(buffer, sizeof(buffer), "ADC Click: %d\n", valorADC);
+                        Serial.write(buffer);
+                    }
+                    isPressed = false;
+                    ultimoValorADC = valorADC; // Atualiza para o valor neutro
                 }
             }
         }
