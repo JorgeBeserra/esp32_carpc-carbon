@@ -66,6 +66,9 @@ SerialConsole console;
 
 CAN_COMMON *canBuses[NUM_BUSES];
 
+unsigned long lastSerialActivity = 0;
+unsigned long startupTime = 0;
+
 //initializes all the system EEPROM values. Chances are this should be broken out a bit but
 //there is only one checksum check for all of them so it's simple to do it all here.
 void loadSettings()
@@ -163,7 +166,9 @@ void setup()
     rtc.begin();
 
     pinMode(MOSFET_PIN, OUTPUT);
-    digitalWrite(MOSFET_PIN, LOW);  // Inicia com Raspberry desligada
+    digitalWrite(MOSFET_PIN, HIGH);  // Mantém Raspberry ligada inicialmente
+    startupTime = millis();
+    lastSerialActivity = millis();
 
     SysSettings.isWifiConnected = false;
 
@@ -453,11 +458,12 @@ void loop()
     }
 
     serialCnt = 0;
-    while ( (Serial.available() > 0) && serialCnt < 128 ) 
+    while ( (Serial.available() > 0) && serialCnt < 128 )
     {
         serialCnt++;
         in_byte = Serial.read();
         serialGVRET.processIncomingByte(in_byte);
+        lastSerialActivity = millis();
     }
 
     elmEmulator.loop();

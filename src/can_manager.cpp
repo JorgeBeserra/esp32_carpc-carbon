@@ -8,6 +8,8 @@
 #include "ELM327_Emulator.h"
 
 unsigned long lastCANActivity = 0;
+extern unsigned long lastSerialActivity;
+extern unsigned long startupTime;
 bool warningSent = false;
 bool shutdownCanceled = false;
 bool sleeping = false;
@@ -250,32 +252,40 @@ void CANManager::loop()
         if (messagesProcessed >= MAX_MESSAGES_PER_LOOP) break;
     }
 
-    // Atualiza o estado do MOSFET com base na atividade CAN
+    // Atualiza o estado do MOSFET com base na atividade CAN ou serial
     if (canActive) {
         lastCANActivity = millis();
         warningSent = false; // Reseta o aviso se houver tráfego
         shutdownCanceled = false; // Se houver tráfego CAN, o desligamento é cancelado
         digitalWrite(MOSFET_PIN, HIGH);
     } else {
-        unsigned long timeSinceLastActivity = millis() - lastCANActivity;
-        if (timeSinceLastActivity >= TIMEOUT_WARNING && !warningSent)
-        {
-            Logger::console("ShutdownForInactivity");
-            warningSent = true; // Evita repetição do aviso
+        unsigned long lastActivity = lastCANActivity;
+        if (lastSerialActivity > lastActivity) lastActivity = lastSerialActivity;
+        unsigned long timeSinceLastActivity = millis() - lastActivity;
+
+        if (millis() - startupTime < STARTUP_DELAY) {
+            // Mantém ligado durante o período inicial
+            digitalWrite(MOSFET_PIN, HIGH);
+        } else {
+            if (timeSinceLastActivity >= TIMEOUT_WARNING && !warningSent)
+            {
+                Logger::console("ShutdownForInactivity");
+                warningSent = true; // Evita repetição do aviso
+            }
+
+            if (timeSinceLastActivity >= TIMEOUT_SHUTDOWN)
+            {
+                // Aqui o Raspberry deve interpretar esse comando e desligar
+                Logger::console("ShuttingDown");
+                digitalWrite(MOSFET_PIN, LOW);  // Desativa o MOSFET
+
+                Serial.println("Entering sleep mode...");
+                sleeping = true;
+                esp_sleep_enable_ext0_wakeup((gpio_num_t)CAN_INT_PIN, 1); // Acorda com atividade no CAN
+                esp_light_sleep_start(); // ESP32 dorme
+            }
         }
 
-        if (timeSinceLastActivity >= TIMEOUT_SHUTDOWN)
-        {
-            // Aqui o Raspberry deve interpretar esse comando e desligar
-            Logger::console("ShuttingDown");
-            digitalWrite(MOSFET_PIN, LOW);  // Desativa o MOSFET
-
-            Serial.println("Entering sleep mode...");
-            sleeping = true;
-            esp_sleep_enable_ext0_wakeup((gpio_num_t)CAN_INT_PIN, 1); // Acorda com atividade no CAN
-            esp_light_sleep_start(); // ESP32 dorme
-        }
-        
     }
 
     // Cede controle ao FreeRTOS ao final de cada iteração

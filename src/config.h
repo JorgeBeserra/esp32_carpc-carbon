@@ -77,6 +77,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #define MOSFET_PIN 19  // GPIO para controle do MOSFET
 #define CAN_INT_PIN GPIO_NUM_4
+#define STARTUP_DELAY 60000UL // tempo inicial para manter o MOSFET ligado (1 minuto)
 #define TIMEOUT_WARNING 10000  // 1 minuto sem atividade CAN para enviar o aviso -> Temporario em 30 segundos
 #define TIMEOUT_SHUTDOWN 30000 // 5 minutos para desligamento total -> Temporario em 1 minuto
 
@@ -158,5 +159,7 @@ extern char deviceName[20];
 extern char otaHost[40];
 extern char otaFilename[100];
 extern CAN_COMMON *canBuses[NUM_BUSES];
+extern unsigned long lastSerialActivity;
+extern unsigned long startupTime;
 
 #endif /* CONFIG_H_ */
