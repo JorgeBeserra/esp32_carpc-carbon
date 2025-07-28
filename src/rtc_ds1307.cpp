@@ -20,7 +20,7 @@ bool RTC_DS1307::read(DateTime &dt) {
     if (Wire.requestFrom(0x68, 7) != 7) return false;
     dt.second = bcd2bin(Wire.read() & 0x7F);
     dt.minute = bcd2bin(Wire.read());
-    dt.hour = bcd2bin(Wire.read());
+    dt.hour = bcd2bin(Wire.read() & 0x3F);
     Wire.read(); // skip day of week
     dt.day = bcd2bin(Wire.read());
     dt.month = bcd2bin(Wire.read());
