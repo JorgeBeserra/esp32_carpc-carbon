@@ -35,6 +35,7 @@
 #include "config.h"
 #include "sys_io.h"
 #include "lawicel.h"
+#include "rtc_ds1307.h"
 
 extern void CANHandler();
 
@@ -372,6 +373,24 @@ void SerialConsole::handleConfigCmd()
         Logger::console("Setting BRILHO to %i", newValue);
     } else if (cmdString == String("DESLIGAR")) {
         Logger::console("Setting DESLIGAR to %s", newString);
+    } else if (cmdString == String("SETTIME")) {
+        DateTime dt;
+        int vals[6];
+        if (sscanf(newString, "%d-%d-%dT%d:%d:%d", &vals[0], &vals[1], &vals[2], &vals[3], &vals[4], &vals[5]) == 6) {
+            dt.year = vals[0];
+            dt.month = vals[1];
+            dt.day = vals[2];
+            dt.hour = vals[3];
+            dt.minute = vals[4];
+            dt.second = vals[5];
+            if (rtc.write(dt)) {
+                Logger::console("RTC updated to %s", newString);
+            } else {
+                Logger::console("Failed to update RTC");
+            }
+        } else {
+            Logger::console("Format: YYYY-MM-DDTHH:MM:SS");
+        }
     } else if (cmdString == String("SYSTYPE")) {
         if (newValue < 0) newValue = 0;
         if (newValue > 2) newValue = 2;

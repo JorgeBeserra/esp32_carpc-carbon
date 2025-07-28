@@ -28,6 +28,7 @@
 #include "config.h"
 #include "sys_io.h"
 #include "EEPROM.h"
+#include "rtc_ds1307.h"
 
 Logger::LogLevel Logger::logLevel = Logger::Info;
 uint32_t Logger::lastLogTime = 0;
@@ -169,7 +170,7 @@ boolean Logger::isDebug()
 void Logger::log(LogLevel level, const char *format, va_list args)
 {
     lastLogTime = millis();
-    Serial.print(lastLogTime);
+    Serial.print(rtc.nowString());
     Serial.print(" - ");
 
     switch (level) {

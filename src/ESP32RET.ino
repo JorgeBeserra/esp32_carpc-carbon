@@ -35,6 +35,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "gvret_comm.h"
 #include "can_manager.h"
 #include "lawicel.h"
+#include "rtc_ds1307.h"
 
 byte i = 0;
 
@@ -158,6 +159,8 @@ void setup()
 
     Serial.begin(115200); //for production
     //Serial.begin(115200); //for testing
+
+    rtc.begin();
 
     pinMode(MOSFET_PIN, OUTPUT);
     digitalWrite(MOSFET_PIN, LOW);  // Inicia com Raspberry desligada
@@ -358,8 +361,9 @@ void adc_task(void *pvParameters) {
                 if (isPressed) { // Botão foi solto
                     uint32_t pressDuration = micros() - pressStartTime;
                     if (pressDuration <= 750000 && ultimoValorADC > 2450) { // Toque rápido
-                        char buffer[32];
-                        snprintf(buffer, sizeof(buffer), "ADC Click: %d\n", ultimoValorADC);
+                        char buffer[64];
+                        String now = rtc.nowString();
+                        snprintf(buffer, sizeof(buffer), "%s - ADC Click: %d\n", now.c_str(), ultimoValorADC);
                         Serial.write(buffer);
                     }
                     isPressed = false;
@@ -375,8 +379,9 @@ void adc_task(void *pvParameters) {
                     uint32_t pressDuration = micros() - pressStartTime;
                     if (pressDuration > 750000) { // 500ms = pressão mantida
                         if (micros() - lastHoldSent >= HOLD_INTERVAL) { // Envia a cada 500ms
-                            char buffer[32];
-                            snprintf(buffer, sizeof(buffer), "ADC Hold: %d\n", valorADC);
+                            char buffer[64];
+                            String now = rtc.nowString();
+                            snprintf(buffer, sizeof(buffer), "%s - ADC Hold: %d\n", now.c_str(), valorADC);
                             Serial.write(buffer);
                             lastHoldSent = micros();
                             ultimoValorADC = valorADC;
@@ -387,8 +392,9 @@ void adc_task(void *pvParameters) {
                 if (isPressed) { // Botão foi solto
                     uint32_t pressDuration = micros() - pressStartTime;
                     if (pressDuration <= 750000 && valorADC > 2450) { // Toque rápido
-                        char buffer[32];
-                        snprintf(buffer, sizeof(buffer), "ADC Click: %d\n", valorADC);
+                        char buffer[64];
+                        String now = rtc.nowString();
+                        snprintf(buffer, sizeof(buffer), "%s - ADC Click: %d\n", now.c_str(), valorADC);
                         Serial.write(buffer);
                     }
                     isPressed = false;
