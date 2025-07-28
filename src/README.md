@@ -16,6 +16,7 @@ I changed the code to accommodate the [MrDIY CAN shield](https://store.mrdiy.ca/
      - use connect pins for the CAN transceiver
      - make use for the shiled 2 LEDs
      - changes AP name (CAN Wireless) and password (mrdiy.ca)
+     - added DS1307 RTC support with time configuration via serial
 
 
 This code can be flashed directly using a browser [here](https://mrdiyca.gitlab.io/mrdiy-esp-online-flasher/):
