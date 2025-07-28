@@ -105,6 +105,8 @@ void SerialConsole::printMenu()
     Logger::console("WIFIMODE=%i - Set mode for WiFi (0 = Wifi Off, 1 = Connect to AP, 2 = Create AP", settings.wifiMode);
     Logger::console("SSID=%s - Set SSID to either connect to or create", (char *)settings.SSID);
     Logger::console("WPA2KEY=%s - Either passphrase or actual key", (char *)settings.WPA2Key);
+    
+    Logger::console("SETTIME=%s - Format: YYYY-MM-DDTHH:MM:SS", rtc.nowString());
 }
 
 /*	There is a help menu (press H or h or ?)
