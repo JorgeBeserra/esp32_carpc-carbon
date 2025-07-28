@@ -75,7 +75,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define SW_MODE0  26
 #define SW_MODE1  27
 
-#define MOSFET_PIN 25  // GPIO para controle do MOSFET
+#define MOSFET_PIN 19  // GPIO para controle do MOSFET
 #define CAN_INT_PIN GPIO_NUM_4
 #define TIMEOUT_WARNING 10000  // 1 minuto sem atividade CAN para enviar o aviso -> Temporario em 30 segundos
 #define TIMEOUT_SHUTDOWN 30000 // 5 minutos para desligamento total -> Temporario em 1 minuto

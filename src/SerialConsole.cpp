@@ -106,7 +106,7 @@ void SerialConsole::printMenu()
     Logger::console("SSID=%s - Set SSID to either connect to or create", (char *)settings.SSID);
     Logger::console("WPA2KEY=%s - Either passphrase or actual key", (char *)settings.WPA2Key);
     
-    Logger::console("SETTIME=%s - Format: YYYY-MM-DDTHH:MM:SS", rtc.nowString());
+    Logger::console("SETTIME=%s - Format: YYYY-MM-DDTHH:MM:SS", rtc.nowString().c_str());
 }
 
 /*	There is a help menu (press H or h or ?)

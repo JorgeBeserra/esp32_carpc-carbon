@@ -43,7 +43,7 @@ bool RTC_DS1307::write(const DateTime &dt) {
 
 String RTC_DS1307::format(const DateTime &dt) {
     char buf[20];
-    sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d",
+    sprintf(buf, "%04d-%02d-%02dT%02d:%02d:%02d",
             dt.year, dt.month, dt.day,
             dt.hour, dt.minute, dt.second);
     return String(buf);
@@ -54,7 +54,7 @@ String RTC_DS1307::nowString() {
     if (read(dt)) {
         return format(dt);
     }
-    return String("0000-00-00 00:00:00");
+    return String("0000-00-00T00:00:00");
 }
 
 RTC_DS1307 rtc;
