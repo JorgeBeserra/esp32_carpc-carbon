@@ -107,6 +107,8 @@ void SerialConsole::printMenu()
     Logger::console("WPA2KEY=%s - Either passphrase or actual key", (char *)settings.WPA2Key);
     
     Logger::console("SETTIME=%s - Format: YYYY-MM-DDTHH:MM:SS", rtc.nowString().c_str());
+    
+    Logger::console("MOSFET=%i", digitalRead(MOSFET_PIN));
 }
 
 /*	There is a help menu (press H or h or ?)
@@ -393,7 +395,17 @@ void SerialConsole::handleConfigCmd()
         } else {
             Logger::console("Format: YYYY-MM-DDTHH:MM:SS");
         }
-    } else if (cmdString == String("SYSTYPE")) {
+    } else if (cmdString == String("MOSFET")) {
+        if (newValue == 1) {
+            digitalWrite(MOSFET_PIN, HIGH);
+            Logger::console("MOSFET ativado (HIGH)");
+        } else if (newValue == 0) {
+            digitalWrite(MOSFET_PIN, LOW);
+            Logger::console("MOSFET desativado (LOW)");
+        } else {
+            Logger::console("Valor inválido para MOSFET (use 0 ou 1)");
+        }
+    }else if (cmdString == String("SYSTYPE")) {
         if (newValue < 0) newValue = 0;
         if (newValue > 2) newValue = 2;
         if (newValue == 0) Logger::console("Setting board type to Macchina A0");
