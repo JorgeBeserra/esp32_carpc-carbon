@@ -296,6 +296,9 @@ void CANManager::loop()
                 esp_light_sleep_start(); // ESP32 dorme
                 sleeping = false; // volta a processar apos acordar
                 Serial.println("Woke from sleep");
+                lastCANActivity = millis();  // evita novo sleep imediato
+                warningSent = false;
+                setMosfet(true);
             }
         }
 
