@@ -13,6 +13,16 @@ extern unsigned long startupTime;
 bool warningSent = false;
 bool shutdownCanceled = false;
 bool sleeping = false;
+static bool mosfetState = false; // track MOSFET status
+
+static void setMosfet(bool state)
+{
+    if (mosfetState != state)
+    {
+        digitalWrite(MOSFET_PIN, state ? HIGH : LOW);
+        mosfetState = state;
+    }
+}
 
 // Lista de IDs a filtrar apenas na serial
 const uint32_t SERIAL_FILTERED_IDS[] = {0x3B3, 0x3AA, 0x202};
@@ -257,7 +267,7 @@ void CANManager::loop()
         lastCANActivity = millis();
         warningSent = false; // Reseta o aviso se houver tráfego
         shutdownCanceled = false; // Se houver tráfego CAN, o desligamento é cancelado
-        digitalWrite(MOSFET_PIN, HIGH);
+        setMosfet(true);
     } else {
         unsigned long lastActivity = lastCANActivity;
         if (lastSerialActivity > lastActivity) lastActivity = lastSerialActivity;
@@ -265,7 +275,7 @@ void CANManager::loop()
 
         if (millis() - startupTime < STARTUP_DELAY) {
             // Mantém ligado durante o período inicial
-            digitalWrite(MOSFET_PIN, HIGH);
+            setMosfet(true);      
         } else {
             if (timeSinceLastActivity >= TIMEOUT_WARNING && !warningSent)
             {
@@ -277,7 +287,7 @@ void CANManager::loop()
             {
                 // Aqui o Raspberry deve interpretar esse comando e desligar
                 Logger::console("ShuttingDown");
-                
+
                 //digitalWrite(MOSFET_PIN, LOW);  // Desativa o MOSFET
 
                 Serial.println("Entering sleep mode...");
