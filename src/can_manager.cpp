@@ -277,6 +277,7 @@ void CANManager::loop()
             {
                 // Aqui o Raspberry deve interpretar esse comando e desligar
                 Logger::console("ShuttingDown");
+                
                 digitalWrite(MOSFET_PIN, LOW);  // Desativa o MOSFET
 
                 Serial.println("Entering sleep mode...");
