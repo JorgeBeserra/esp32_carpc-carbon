@@ -356,7 +356,8 @@ void adc_task(void *pvParameters) {
     while (1) {
         if (micros() - lastResistanceCheck > 100000) { // 100ms para maior responsividade
             lastResistanceCheck = micros();
-            int valorADC = getAnalog(2); // GPIO 34 (ADC1_CHANNEL_2)
+            // int valorADC = getAnalog(2); // GPIO 34 (ADC1_CHANNEL_2) estava funcionando antes
+            uint16_t valorADC = adc1_get_raw(ADC1_CHANNEL_0);
             
             // char buffer[32];
             // snprintf(buffer, sizeof(buffer), "ADC Bruto: %d\n", valorADC);
