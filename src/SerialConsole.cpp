@@ -405,6 +405,11 @@ void SerialConsole::handleConfigCmd()
         } else {
             Logger::console("Valor inválido para MOSFET (use 0 ou 1)");
         }
+    }else if (cmdString == String("SHUTDOWN")) {
+            Logger::console("Desligamento em 15 segundos...");
+            delay(15000); // espera 15.000 milissegundos = 15 segundos
+            digitalWrite(MOSFET_PIN, LOW);
+            Logger::console("Desligado por ShutDown");
     }else if (cmdString == String("SYSTYPE")) {
         if (newValue < 0) newValue = 0;
         if (newValue > 2) newValue = 2;
