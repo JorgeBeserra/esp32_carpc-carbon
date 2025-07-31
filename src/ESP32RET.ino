@@ -253,6 +253,12 @@ fastest and safest with limited function calls
 // ADC Click: 3890
 // ADC Click: 3892
 
+//2025-07-30T17:09:32 - ADC Click: 3918
+//2025-07-30T17:09:32 - ADC Click: 3919
+//2025-07-30T17:09:32 - ADC Click: 3919
+//2025-07-30T17:09:32 - ADC Click: 3919
+//2025-07-30T17:09:32 - ADC Click: 3921
+
 // volume -
 
 // ADC Click: 4048
@@ -270,6 +276,13 @@ fastest and safest with limited function calls
 // ADC Click: 4048
 // ADC Click: 4047
 
+//2025-07-30T17:09:34 - ADC Click: 4079
+//2025-07-30T17:09:35 - ADC Click: 4075
+//2025-07-30T17:09:35 - ADC Click: 4072
+//2025-07-30T17:09:35 - ADC Click: 4075
+//2025-07-30T17:09:36 - ADC Click: 4074
+//2025-07-30T17:09:36 - ADC Click: 4073
+
 
 // Proxima Musica
 
@@ -279,15 +292,14 @@ fastest and safest with limited function calls
 // ADC Click: 3665
 // ADC Click: 3668
 // ADC Click: 3665
-// ADC Click: 3666
-// ADC Click: 3667
-// ADC Click: 3667
-// ADC Click: 3665
-// ADC Click: 3665
-// ADC Click: 3664
-// ADC Click: 3666
-// ADC Click: 3666
-// ADC Click: 3663
+
+//2025-07-30T17:09:38 - ADC Click: 3695
+//2025-07-30T17:09:38 - ADC Click: 3695
+//2025-07-30T17:09:38 - ADC Click: 3696
+//2025-07-30T17:09:38 - ADC Click: 3696
+//2025-07-30T17:09:39 - ADC Click: 3701
+//2025-07-30T17:09:39 - ADC Click: 3696
+
 
 
 // musica anterior
@@ -303,31 +315,13 @@ fastest and safest with limited function calls
 // ADC Click: 3357
 // ADC Click: 3358
 // ADC Click: 3355
-// ADC Click: 3357
-// ADC Click: 3355
-// ADC Click: 3359
-// ADC Click: 3358
-// ADC Click: 3357
-// ADC Click: 3358
-// ADC Click: 3359
-// ADC Click: 3356
-// ADC Click: 3359
-// ADC Click: 3356
-// ADC Click: 3359
-// ADC Click: 3360
-// ADC Click: 3358
-// ADC Click: 3359
-// ADC Click: 3357
-// ADC Click: 3354
-// ADC Click: 3359
-// ADC Click: 3353
-// ADC Click: 3353
-// ADC Click: 3356
-// ADC Click: 3355
-// ADC Click: 3356
-// ADC Click: 3354
-// ADC Click: 3357
-// ADC Click: 3354
+
+
+//2025-07-30T17:09:36 - ADC Click: 3389
+//2025-07-30T17:09:36 - ADC Click: 3390
+//2025-07-30T17:09:37 - ADC Click: 3391
+//2025-07-30T17:09:37 - ADC Click: 3389
+//2025-07-30T17:09:37 - ADC Click: 3388
 
 
 // muta
@@ -338,15 +332,15 @@ fastest and safest with limited function calls
 // ADC Click: 4095
 // ADC Click: 4095
 // ADC Click: 4095
-// ADC Click: 4095
-// ADC Click: 4095
-// ADC Click: 4095
-// ADC Click: 4095
-// ADC Click: 4095
-// ADC Click: 4095
-// ADC Click: 4095
-// ADC Click: 4095
-// ADC Click: 4095
+
+
+//2025-07-30T17:09:40 - ADC Click: 4095
+//2025-07-30T17:09:41 - ADC Click: 4095
+//2025-07-30T17:09:41 - ADC Click: 4095
+//2025-07-30T17:09:42 - ADC Click: 4095
+//2025-07-30T17:09:42 - ADC Click: 4095
+//2025-07-30T17:09:42 - ADC Click: 4095
+//2025-07-30T17:09:43 - ADC Click: 4095
 
 
 
