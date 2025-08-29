@@ -363,15 +363,18 @@ void SerialConsole::handleConfigCmd()
         writeEEPROM = true;
     } else if (cmdString == String("BTNAME")) {
         Logger::console("Setting Bluetooth Name to %s", newString);
-        strcpy((char *)settings.btName, newString);
+        strncpy((char *)settings.btName, newString, sizeof(settings.btName) - 1);
+        settings.btName[sizeof(settings.btName) - 1] = '\0';
         writeEEPROM = true;
     } else if (cmdString == String("SSID")) {
         Logger::console("Setting SSID to %s", newString);
-        strcpy((char *)settings.SSID, newString);
+        strncpy((char *)settings.SSID, newString, sizeof(settings.SSID) - 1);
+        settings.SSID[sizeof(settings.SSID) - 1] = '\0';
         writeEEPROM = true;
     } else if (cmdString == String("WPA2KEY")) {
         Logger::console("Setting WPA2 Key to %s", newString);
-        strcpy((char *)settings.WPA2Key, newString);
+        strncpy((char *)settings.WPA2Key, newString, sizeof(settings.WPA2Key) - 1);
+        settings.WPA2Key[sizeof(settings.WPA2Key) - 1] = '\0';
         writeEEPROM = true;
     } else if (cmdString == String("BRILHO")) {
         Logger::console("Setting BRILHO to %i", newValue);
