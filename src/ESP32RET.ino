@@ -119,7 +119,8 @@ void loadSettings()
     if (nvPrefs.getString("SSID", settings.SSID, 32) == 0)
     {
         //strcpy(settings.SSID, deviceName);
-        strcat(settings.SSID, "Sabidos");
+        strncpy(settings.SSID, "Sabidos", sizeof(settings.SSID) - 1);
+        settings.SSID[sizeof(settings.SSID) - 1] = '\0';
    }
 
     if (nvPrefs.getString("wpa2Key", settings.WPA2Key, 64) == 0)
@@ -128,8 +129,9 @@ void loadSettings()
     }
     if (nvPrefs.getString("btname", settings.btName, 32) == 0)
     {
-        strcpy(settings.btName, "ELM327-");
-        strcat(settings.btName, deviceName);
+        strncpy(settings.btName, "ELM327-", sizeof(settings.btName) - 1);
+        settings.btName[sizeof(settings.btName) - 1] = '\0';
+        strncat(settings.btName, deviceName, sizeof(settings.btName) - strlen(settings.btName) - 1);
     }
 
     char buff[80];
