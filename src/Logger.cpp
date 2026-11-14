@@ -214,96 +214,81 @@ void Logger::log(LogLevel level, const char *format, va_list args)
  */
 void Logger::logMessage(const char *format, va_list args)
 {
-    uint8_t buffer[200];
-    uint8_t buffLen = 0;
-    uint8_t writeLen;
-    for (; *format != 0; ++format) {
-        if (*format == '%') {
-            ++format;
+    //two bytes are always kept free for the trailing CR/LF
+    const size_t LIMIT = 254;
+    char buffer[LIMIT + 2];
+    size_t buffLen = 0;
 
-            if (*format == '\0') {
-                break;
-            }
-
-            if (*format == '%') {
-                buffer[buffLen++] = *format;
-                continue;
-            }
-
-            if (*format == 's') {
-                register char *s = (char *) va_arg(args, int);
-                writeLen = sprintf((char*)&buffer[buffLen], "%s", s);
-                buffLen += writeLen;
-                continue;
-            }
-
-            if (*format == 'd' || *format == 'i') {
-                writeLen = sprintf((char*)&buffer[buffLen], "%i", va_arg(args, int));
-                buffLen += writeLen;
-                continue;
-            }
-
-            if (*format == 'f') {
-                writeLen = sprintf((char*)&buffer[buffLen], "%.2f", va_arg(args, double));
-                buffLen += writeLen;
-                continue;
-            }
-
-            if (*format == 'x') {
-                writeLen = sprintf((char*)&buffer[buffLen], "%X", va_arg(args, int));
-                buffLen += writeLen;
-                continue;
-            }
-
-            if (*format == 'X') {
-                writeLen = sprintf((char*)&buffer[buffLen], "0x%X", va_arg(args, int));
-                buffLen += writeLen;
-                continue;
-            }
-
-            if (*format == 'l') {
-                writeLen = sprintf((char*)&buffer[buffLen], "%l", va_arg(args, long));
-                buffLen += writeLen;
-                continue;
-            }
-
-            if (*format == 'c') {
-                writeLen = sprintf((char*)&buffer[buffLen], "%c", va_arg(args, int));
-                buffLen += writeLen;
-                continue;
-            }
-
-            if (*format == 't') {
-                if (va_arg(args, int) == 1) {
-                    buffer[buffLen++] = 'T';
-                } else {
-                    buffer[buffLen++] = 'F';
-                }
-                continue;
-            }
-
-            if (*format == 'T') {
-                if (va_arg(args, int) == 1) {
-                    writeLen = sprintf((char*)&buffer[buffLen], "TRUE");
-                    buffLen += writeLen;
-                } else {
-                    writeLen = sprintf((char*)&buffer[buffLen], "FALSE");
-                    buffLen += writeLen;
-                }
-                continue;
-            }
+    for (; *format != 0 && buffLen < LIMIT; ++format) {
+        if (*format != '%') {
+            buffer[buffLen++] = *format;
+            continue;
         }
-        else buffer[buffLen++] = *format;
+
+        ++format;
+        if (*format == '\0') {
+            break;
+        }
+
+        //snprintf never writes more than "room" bytes (terminator included) but returns the
+        //length it wanted to write, so the result has to be clamped afterward.
+        size_t room = LIMIT - buffLen + 1;
+        int written = 0;
+        char *dest = &buffer[buffLen];
+
+        switch (*format) {
+        case '%':
+            buffer[buffLen++] = '%';
+            continue;
+        case 's': {
+            const char *str = va_arg(args, const char *);
+            written = snprintf(dest, room, "%s", str ? str : "(null)");
+            break;
+        }
+        case 'd':
+        case 'i':
+            written = snprintf(dest, room, "%i", va_arg(args, int));
+            break;
+        case 'u':
+            written = snprintf(dest, room, "%u", va_arg(args, unsigned int));
+            break;
+        case 'f':
+            written = snprintf(dest, room, "%.2f", va_arg(args, double));
+            break;
+        case 'x':
+            written = snprintf(dest, room, "%X", va_arg(args, unsigned int));
+            break;
+        case 'X':
+            written = snprintf(dest, room, "0x%X", va_arg(args, unsigned int));
+            break;
+        case 'l':
+            written = snprintf(dest, room, "%li", va_arg(args, long));
+            break;
+        case 'c':
+            written = snprintf(dest, room, "%c", va_arg(args, int));
+            break;
+        case 't':
+            written = snprintf(dest, room, "%s", (va_arg(args, int) == 1) ? "T" : "F");
+            break;
+        case 'T':
+            written = snprintf(dest, room, "%s", (va_arg(args, int) == 1) ? "TRUE" : "FALSE");
+            break;
+        default: //unknown specifier - skip it like the original implementation did
+            continue;
+        }
+
+        if (written < 0) written = 0;
+        if ((size_t)written >= room) written = room - 1; //output was truncated
+        buffLen += written;
     }
+
     buffer[buffLen++] = '\r';
     buffer[buffLen++] = '\n';
-    Serial.write(buffer, buffLen);
+    Serial.write((const uint8_t *)buffer, buffLen);
     //If wifi has connected nodes then send to them too.
     for(int i = 0; i < MAX_CLIENTS; i++){
         if (SysSettings.clientNodes[i] && SysSettings.clientNodes[i].connected()){
-            SysSettings.clientNodes[i].write(buffer, buffLen);
+            SysSettings.clientNodes[i].write((const uint8_t *)buffer, buffLen);
         }
     }
 }
-
-

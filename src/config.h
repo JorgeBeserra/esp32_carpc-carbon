@@ -80,6 +80,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define STARTUP_DELAY 60000UL // tempo inicial para manter o MOSFET ligado (1 minuto)
 #define TIMEOUT_WARNING 10000  // 1 minuto sem atividade CAN para enviar o aviso -> Temporario em 30 segundos
 #define TIMEOUT_SHUTDOWN 30000 // 5 minutos para desligamento total -> Temporario em 1 minuto
+#define TIMEOUT_SLEEP_GRACE 20000 // tempo apos o "ShuttingDown" para o Raspberry responder antes do light sleep
 
 //How many devices to allow to connect to our WiFi telnet port?
 #define MAX_CLIENTS 1

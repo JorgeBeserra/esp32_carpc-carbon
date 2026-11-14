@@ -103,7 +103,7 @@ void ELM327Emu::loop() {
                     ibWritePtr = 0; //reset the write pointer
 
                     if (Logger::isDebug())
-                        Logger::debug(incomingBuffer);
+                        Logger::debug("%s", incomingBuffer);
 
                     processCmd();
 
@@ -130,7 +130,7 @@ void ELM327Emu::loop() {
                     ibWritePtr = 0; //reset the write pointer
 
                     if (Logger::isDebug())
-                        Logger::debug(incomingBuffer);
+                        Logger::debug("%s", incomingBuffer);
 
                     processCmd();
 
@@ -175,7 +175,7 @@ void ELM327Emu::processCmd() {
         char buff[300];
         retString = "Reply:" + retString;
         retString.toCharArray(buff, 300);
-        Logger::debug(buff);
+        Logger::debug("%s", buff);
     }
 
 }
@@ -312,7 +312,7 @@ String ELM327Emu::processELMCmd(char *cmd)
         if (cmdSize == 6) //custom PIDs for specific vehicles
         {
             uint32_t valu = strtol((char *) cmd, NULL, 16); //the pid format is always in hex
-            uint16_t pidnum = (uint8_t)(valu & 0xFFFF);
+            uint16_t pidnum = (uint16_t)(valu & 0xFFFF);
             uint8_t mode = (uint8_t)((valu >> 16) & 0xFF);
             Logger::debug("Mode: %i, PID: %i", mode, pidnum);
             outFrame.data.byte[0] = 3;
@@ -334,20 +334,24 @@ void ELM327Emu::processCANReply(CAN_FRAME &frame)
 {
     //at the moment assume anything sent here is a legit reply to something we sent. Package it up properly
     //and send it down the line
-    char buff[8];
+    char buff[12];
     if (bHeader || bMonitorMode)
     {
-        sprintf(buff, "%03X", frame.id);
+        snprintf(buff, sizeof(buff), "%03X", (unsigned int)frame.id);
         txBuffer.sendString(buff);
     }
     if (bDLC)
     {
-        sprintf(buff, "%u", frame.length);
+        snprintf(buff, sizeof(buff), "%u", (unsigned int)frame.length);
         txBuffer.sendString(buff);
     }
-    for (int i = 0; i < frame.data.byte[0]; i++)
+    //byte 0 e o tamanho do payload ISO-TP; um frame so carrega ate 7 bytes depois dele
+    int payloadLen = frame.data.byte[0];
+    if (payloadLen > 7) payloadLen = 7;
+    if (payloadLen > frame.length - 1) payloadLen = frame.length - 1;
+    for (int i = 0; i < payloadLen; i++)
     {
-        sprintf(buff, "%02X", frame.data.byte[1+i]);
+        snprintf(buff, sizeof(buff), "%02X", frame.data.byte[1+i]);
         txBuffer.sendString(buff);
     }
     sendTxBuffer();

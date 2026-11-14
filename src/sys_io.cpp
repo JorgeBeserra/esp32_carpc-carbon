@@ -39,11 +39,11 @@ bool useRawADC = false;
 
 #undef HID_ENABLED
 
-uint8_t dig[NUM_DIGITAL];   //digital inputs. sudo/analogue inputs
+uint8_t dig[NUM_DIGITAL] = {255, 255, 255, 255, 255, 255};   //255 = nao configurado. digital inputs. sudo/analogue inputs
 uint8_t adc[NUM_ANALOG][2]; // [x][0]This holds the ADC Channel number. // This is calculated in sys_early_setup()
                             // [x][1]This holds the pointer of the ADC number position into the adc_buf[x][x] array (Now redundent).
                             // This is calculated in sys_early_setup()
-uint8_t out[NUM_OUTPUT];    //digital output configuration details
+uint8_t out[NUM_OUTPUT] = {255, 255, 255, 255, 255, 255};    //255 = nao configurado. digital output configuration details
 
 uint32_t Enabled_Analogue_Pins = 0; // Sum of ADC input numbers to load into ADC_CHER
 
@@ -103,7 +103,7 @@ get value of one of the sudo 6 digital/Analogue inputs 0->(NUM_DIGITAL - 1)
 */
 boolean getDigital(uint8_t which)
 {
-    if((which >= NUM_OUTPUT) || (dig[which] == 255)){
+    if((which >= NUM_DIGITAL) || (dig[which] == 255)){
         return(false);
     }
     return(false); //(adc_out_vals[which] > 200) ? true : false);

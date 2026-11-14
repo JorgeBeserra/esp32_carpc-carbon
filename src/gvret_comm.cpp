@@ -39,6 +39,12 @@ void GVRET_Comm_Handler::processIncomingByte(uint8_t in_byte)
         }
         break;
     case GET_COMMAND:
+        //as respostas abaixo ocupam no maximo 19 bytes. Sem espaco no buffer, descarta o comando.
+        if (transmitBufferLength > (WIFI_BUFF_SIZE - 32))
+        {
+            state = IDLE;
+            break;
+        }
         switch(in_byte)
         {
         case PROTO_BUILD_CAN_FRAME:
@@ -172,6 +178,9 @@ void GVRET_Comm_Handler::processIncomingByte(uint8_t in_byte)
             step = 0;
             buff[0] = 0xF1;
             break;
+        default: //comando desconhecido - volta a esperar o proximo 0xF1
+            state = IDLE;
+            break;
         }
         break;
     case BUILD_CAN_FRAME:
@@ -216,7 +225,7 @@ void GVRET_Comm_Handler::processIncomingByte(uint8_t in_byte)
                 //this would be the checksum byte. Compute and compare.
                 //temp8 = checksumCalc(buff, step);
                 build_out_frame.rtr = 0;
-                if (out_bus < NUM_BUSES) canManager.sendFrame(canBuses[out_bus], build_out_frame);
+                if (out_bus < NUM_BUSES && canBuses[out_bus]) canManager.sendFrame(canBuses[out_bus], build_out_frame);
             }
             break;
         }
@@ -281,11 +290,13 @@ void GVRET_Comm_Handler::processIncomingByte(uint8_t in_byte)
                         settings.canSettings[0].enabled = true;
                     }
                     //CAN0.set_baudrate(build_int);
-                    settings.canSettings[0].nomSpeed = busSpeed;
+                    if (busSpeed > 0) settings.canSettings[0].nomSpeed = busSpeed; //velocidade 0 causaria divisao por zero
 
                 } else { //disable first canbus
                     settings.canSettings[0].enabled = false;
                 }
+
+                if (!canBuses[0]) break;
 
                 if (settings.canSettings[0].enabled)
                 {
@@ -334,10 +345,14 @@ void GVRET_Comm_Handler::processIncomingByte(uint8_t in_byte)
                         settings.canSettings[1].enabled = true;
                     }
                     //CAN1.set_baudrate(build_int);
-                    settings.canSettings[1].nomSpeed = busSpeed;
+                    if (busSpeed > 0) settings.canSettings[1].nomSpeed = busSpeed;
                 } else { //disable first canbus
                     settings.canSettings[1].enabled = false;
                 }
+
+                state = IDLE;
+
+                if (!canBuses[1]) break; //este hardware so tem um barramento
 
                 if (settings.canSettings[1].enabled)
                 {
@@ -348,7 +363,6 @@ void GVRET_Comm_Handler::processIncomingByte(uint8_t in_byte)
                 }
                 else canBuses[1]->disable();
 
-                state = IDLE;
                 //now, write out the new canbus settings to EEPROM
                 //EEPROM.writeBytes(0, &settings, sizeof(settings));
                 //EEPROM.commit();
