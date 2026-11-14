@@ -97,7 +97,7 @@ void LAWICELHandler::handleLongCmd(char *buffer)
     case 'T': //transmit extended frame
         outFrame.id = Utility::parseHexString(buffer + 1, 8);
         outFrame.length = buffer[9] - '0';
-        outFrame.extended = false;
+        outFrame.extended = true;
         if (outFrame.length < 0) outFrame.length = 0;
         if (outFrame.length > 8) outFrame.length = 8;
         for (int data = 0; data < outFrame.length; data++) {
@@ -160,7 +160,7 @@ void LAWICELHandler::handleLongCmd(char *buffer)
                 for (int b = 0; b < numBytes; b++) outFrame.data.bytes[b] = bytes[b];
                 CAN0.sendFrame(outFrame);
             }
-            if (!strcasecmp(tokens[1], "CAN1")) {
+            if (!strcasecmp(tokens[1], "CAN1") && SysSettings.numBuses > 1) {
                 CAN_FRAME outFrame;
                 outFrame.id = id;
                 outFrame.length = numBytes;
@@ -169,6 +169,7 @@ void LAWICELHandler::handleLongCmd(char *buffer)
                 CAN1.sendFrame(outFrame);
             }            
         }
+        break;
     case 's': //setup canbus baud via register writes (we can't really do that...)
         //settings.CAN0Speed = 250000;
         break;
@@ -198,7 +199,7 @@ void LAWICELHandler::handleLongCmd(char *buffer)
                 if (!strcasecmp(tokens[4], "X")) CAN0.setRXFilter(0, filt, mask, true);
                     else CAN0.setRXFilter(0, filt, mask, false);
             }
-            if (!strcasecmp(tokens[1], "CAN1"))
+            if (!strcasecmp(tokens[1], "CAN1") && SysSettings.numBuses > 1)
             {
                 if (!strcasecmp(tokens[4], "X")) CAN1.setRXFilter(0, filt, mask, true);
                     else CAN1.setRXFilter(0, filt, mask, false);
@@ -228,7 +229,7 @@ void LAWICELHandler::handleLongCmd(char *buffer)
             if (!strcasecmp(tokens[1], "CAN0")) {
                 CAN0.begin(speed, 255);
             }
-            if (!strcasecmp(tokens[1], "CAN1")) {
+            if (!strcasecmp(tokens[1], "CAN1") && SysSettings.numBuses > 1) {
                 CAN1.begin(speed, 255);
             }            
         }
@@ -237,21 +238,26 @@ void LAWICELHandler::handleLongCmd(char *buffer)
     Serial.write(13);
 }
 
-//Tokenize cmdBuffer on space boundaries - up to 10 tokens supported
-void LAWICELHandler::tokenizeCmdString(char *buff) {
+//Tokenize cmdBuffer on space boundaries - up to 14 tokens of up to 9 characters supported
+void LAWICELHandler::tokenizeCmdString(char *cmd) {
+   const int maxTokens = sizeof(tokens) / sizeof(tokens[0]);
+   const size_t maxLen = sizeof(tokens[0]) - 1;
+   char copy[81];
    int idx = 0;
-   char *tok;
-   
-   for (int i = 0; i < 13; i++) tokens[i][0] = 0;
-   
-   tok = strtok(buff, " ");
-   if (tok != nullptr) strcpy(tokens[idx], tok);
-       else tokens[idx][0] = 0;
-   while (tokens[idx] != nullptr && idx < 13) {
+
+   for (int i = 0; i < maxTokens; i++) tokens[i][0] = 0;
+
+   //strtok writes NULs into its input, so tokenize a copy. The caller still needs
+   //the untouched command string for the classic (non tokenized) LAWICEL commands
+   strncpy(copy, cmd, sizeof(copy) - 1);
+   copy[sizeof(copy) - 1] = 0;
+
+   char *tok = strtok(copy, " ");
+   while (tok != nullptr && idx < maxTokens) {
+       strncpy(tokens[idx], tok, maxLen);
+       tokens[idx][maxLen] = 0;
        idx++;
        tok = strtok(nullptr, " ");
-       if (tok != nullptr) strcpy(tokens[idx], tok);
-            else tokens[idx][0] = 0;
    }
 }
 
@@ -280,16 +286,14 @@ void LAWICELHandler::printBusName(int bus) {
 
 //Expecting to find ID in tokens[2] then zero or more data bytes
 bool LAWICELHandler::parseLawicelCANCmd(CAN_FRAME &frame) {
-    if (tokens[2] == nullptr) return false;
+    const int maxTokens = sizeof(tokens) / sizeof(tokens[0]);
+    if (tokens[2][0] == 0) return false;
     frame.id = strtol(tokens[2], nullptr, 16);
-    int idx = 3;
     int dataLen = 0;
-    while (tokens[idx] != nullptr) {
+    for (int idx = 3; idx < maxTokens && dataLen < 8 && tokens[idx][0] != 0; idx++) {
         frame.data.bytes[dataLen++] = strtol(tokens[idx], nullptr, 16);
-        idx++;
     }
     frame.length = dataLen;
-        
     return true;
 }
 

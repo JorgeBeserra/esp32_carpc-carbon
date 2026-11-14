@@ -243,8 +243,13 @@ void SerialConsole::handleConfigCmd()
             settings.canSettings[idx].nomSpeed = newValue;
             if (settings.canSettings[idx].enabled) 
             {
-                if (settings.canSettings[idx].fdMode)
-                    canBuses[idx]->begin(settings.canSettings[idx].nomSpeed, settings.canSettings[idx].fdSpeed);
+                //aplica a nova velocidade imediatamente
+                if (settings.canSettings[idx].fdMode && canBuses[idx]->supportsFDMode())
+                    canBuses[idx]->beginFD(settings.canSettings[idx].nomSpeed, settings.canSettings[idx].fdSpeed);
+                else
+                    canBuses[idx]->begin(settings.canSettings[idx].nomSpeed, 255);
+                canBuses[idx]->setListenOnlyMode(settings.canSettings[idx].listenOnly);
+                canBuses[idx]->watchFor();
             }
             writeEEPROM = true;
         } 
@@ -542,6 +547,7 @@ bool SerialConsole::handleCANSend(CAN_COMMON &port, char *inputString)
 
     int idVal = strtol(idTok, NULL, 0);
     int lenVal = strtol(lenTok, NULL, 0);
+    if (lenVal < 0 || lenVal > 8) return false; //um frame CAN classico tem no maximo 8 bytes
 
     for (int i = 0; i < lenVal; i++) {
         dataTok = strtok(NULL, ",");
@@ -551,7 +557,7 @@ bool SerialConsole::handleCANSend(CAN_COMMON &port, char *inputString)
 
     //things seem good so try to send the frame.
     frame.id = idVal;
-    if (idVal >= 0x7FF) frame.extended = true;
+    if (idVal > 0x7FF) frame.extended = true;
     else frame.extended = false;
     frame.rtr = 0;
     frame.length = lenVal;
