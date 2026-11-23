@@ -199,7 +199,7 @@ void setup()
     xTaskCreatePinnedToCore(
         adc_task,         // Função da tarefa
         "ADC Task",       // Nome
-        2048,             // Tamanho da pilha
+        4096,             // Tamanho da pilha (snprintf + String + I2C do RTC)
         NULL,             // Parâmetros
         1,                // Prioridade
         NULL,             // Handle
@@ -347,12 +347,14 @@ fastest and safest with limited function calls
 
 
 void adc_task(void *pvParameters) {
-    static int ultimoValorADC = -1;       // Valor inicial improvável
+    static int ultimoValorADC = -1;       // Maior leitura durante o toque atual (identifica o botão)
     static uint32_t lastResistanceCheck = 0;
     static uint32_t pressStartTime = 0;   // Marca o início da pressão
     static bool isPressed = false;        // Estado do botão
+    static bool holdSent = false;         // Já enviou "Hold" neste toque (então não é um click)
     static uint32_t lastHoldSent = 0;     // Última vez que "Hold" foi enviado
     const uint32_t HOLD_INTERVAL = 500000; // Intervalo de 500ms para "Hold"
+    const uint32_t HOLD_THRESHOLD = 750000; // Acima de 750ms pressionado vira "Hold"
 
     while (1) {
         if (micros() - lastResistanceCheck > 100000) { // 100ms para maior responsividade
@@ -367,45 +369,36 @@ void adc_task(void *pvParameters) {
             if (valorADC >= 2380 && valorADC <= 2490) { // Neutro (ajustado com base nos logs)
                 if (isPressed) { // Botão foi solto
                     uint32_t pressDuration = micros() - pressStartTime;
-                    if (pressDuration <= 750000 && ultimoValorADC > 2450) { // Toque rápido
+                    if (pressDuration <= HOLD_THRESHOLD && !holdSent) { // Toque rápido
                         char buffer[64];
                         String now = rtc.nowString();
                         snprintf(buffer, sizeof(buffer), "%s - ADC Click: %d\n", now.c_str(), ultimoValorADC);
                         Serial.write(buffer);
                     }
                     isPressed = false;
-                    ultimoValorADC = valorADC; // Atualiza para o valor neutro
                 }
-            } else if (valorADC > 2450) { // Só processa valores > 2450 (botão pressionado)
+            } else if (valorADC > 2490) { // Acima da faixa neutra = botão pressionado
                 if (!isPressed) { // Botão recém-pressionado
                     pressStartTime = micros();
                     isPressed = true;
-                    lastHoldSent = 0; // Reseta o temporizador de "Hold"
-
+                    holdSent = false;
+                    ultimoValorADC = valorADC;
                 } else { // Botão já está pressionado
+                    // A leitura pode cair no meio da transição ao apertar/soltar. Como todos os
+                    // botões ficam acima do neutro, o maior valor lido é o do botão.
+                    if (valorADC > ultimoValorADC) ultimoValorADC = valorADC;
+
                     uint32_t pressDuration = micros() - pressStartTime;
-                    if (pressDuration > 750000) { // 500ms = pressão mantida
-                        if (micros() - lastHoldSent >= HOLD_INTERVAL) { // Envia a cada 500ms
+                    if (pressDuration > HOLD_THRESHOLD) { // pressão mantida
+                        if (!holdSent || (micros() - lastHoldSent >= HOLD_INTERVAL)) { // Envia a cada 500ms
                             char buffer[64];
                             String now = rtc.nowString();
-                            snprintf(buffer, sizeof(buffer), "%s - ADC Hold: %d\n", now.c_str(), valorADC);
+                            snprintf(buffer, sizeof(buffer), "%s - ADC Hold: %d\n", now.c_str(), ultimoValorADC);
                             Serial.write(buffer);
                             lastHoldSent = micros();
-                            ultimoValorADC = valorADC;
+                            holdSent = true;
                         }
                     }
-                }
-
-                if (isPressed) { // Botão foi solto
-                    uint32_t pressDuration = micros() - pressStartTime;
-                    if (pressDuration <= 750000 && valorADC > 2450) { // Toque rápido
-                        char buffer[64];
-                        String now = rtc.nowString();
-                        snprintf(buffer, sizeof(buffer), "%s - ADC Click: %d\n", now.c_str(), valorADC);
-                        Serial.write(buffer);
-                    }
-                    isPressed = false;
-                    ultimoValorADC = valorADC; // Atualiza para o valor neutro
                 }
             }
         }
@@ -470,5 +463,7 @@ void loop()
 
     elmEmulator.loop();
 
-    vTaskDelay(pdMS_TO_TICKS(20)); // Cede controle ao FreeRTOS no loop principal
+    // canManager.loop() ja cede 1ms. Um atraso longo aqui faz a fila de RX do CAN (64 frames)
+    // transbordar em barramentos movimentados e perder mensagens.
+    vTaskDelay(pdMS_TO_TICKS(2)); // Cede controle ao FreeRTOS no loop principal
 }

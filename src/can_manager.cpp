@@ -7,6 +7,7 @@
 #include "lawicel.h"
 #include "ELM327_Emulator.h"
 #include "esp_sleep.h"
+#include "driver/rtc_io.h"
 
 unsigned long lastCANActivity = 0;
 extern unsigned long lastSerialActivity;
@@ -14,25 +15,18 @@ extern unsigned long startupTime;
 bool warningSent = false;
 bool shutdownCanceled = false;
 bool sleeping = false;
-static bool mosfetState = false; // track MOSFET status
+static bool shutdownSent = false; // "ShuttingDown" ja foi enviado neste ciclo de inatividade
 
+// Escreve sempre no pino: o console (MOSFET=0 / SHUTDOWN) tambem altera o pino diretamente,
+// entao um estado em cache ficaria dessincronizado e impediria religar o Raspberry.
 static void setMosfet(bool state)
 {
-    if (mosfetState != state)
-    {
-        digitalWrite(MOSFET_PIN, state ? HIGH : LOW);
-        mosfetState = state;
-    }
+    digitalWrite(MOSFET_PIN, state ? HIGH : LOW);
 }
 
 // Lista de IDs a filtrar apenas na serial
 const uint32_t SERIAL_FILTERED_IDS[] = {0x3B3, 0x3AA, 0x202};
 const int NUM_SERIAL_FILTERED_IDS = sizeof(SERIAL_FILTERED_IDS) / sizeof(SERIAL_FILTERED_IDS[0]);
-
-void IRAM_ATTR CANManager::wakeUp()
-{
-    sleeping = false;
-}
 
 CANManager::CANManager()
 {
@@ -43,6 +37,8 @@ void CANManager::setup()
 {
     for (int i = 0; i < SysSettings.numBuses; i++)
     {
+        if (!canBuses[i]) continue;
+
         if (settings.canSettings[i].enabled)
         {
             canBuses[i]->enable();
@@ -93,6 +89,7 @@ void CANManager::setup()
         for (int i = 1; i < 5; i++)
         {
             MCP2517FD *can = (MCP2517FD *)canBuses[i];
+            if (!can) continue;
             stdbymode = can->Read8(0xE04);
             stdbymode |= 0x40; // Set bit 6 to enable XSTBY mode
             can->Write8(0xE04, stdbymode);
@@ -112,8 +109,10 @@ void CANManager::setup()
 
     busLoadTimer = millis();
 
+    // Pull-up mantem o RX em nivel recessivo (alto) se o transceiver estiver desconectado.
+    // Nao usar attachInterrupt aqui: este e o pino RX do CAN e geraria uma interrupcao por bit.
+    // O despertar do light sleep e feito via ext0 em CANManager::loop().
     pinMode(CAN_INT_PIN, INPUT_PULLUP);
-    attachInterrupt(CAN_INT_PIN, wakeUp, RISING);
 }
 
 void CANManager::addBits(int offset, CAN_FRAME &frame)
@@ -133,6 +132,7 @@ void CANManager::addBits(int offset, CAN_FRAME_FD &frame)
 void CANManager::sendFrame(CAN_COMMON *bus, CAN_FRAME &frame)
 {
     int whichBus = 0;
+    if (!bus) return; // barramento inexistente neste hardware
     for (int i = 0; i < NUM_BUSES; i++) if (canBuses[i] == bus) whichBus = i;
     bus->sendFrame(frame);
     addBits(whichBus, frame);
@@ -141,6 +141,7 @@ void CANManager::sendFrame(CAN_COMMON *bus, CAN_FRAME &frame)
 void CANManager::sendFrame(CAN_COMMON *bus, CAN_FRAME_FD &frame)
 {
     int whichBus = 0;
+    if (!bus) return; // barramento inexistente neste hardware
     for (int i = 0; i < NUM_BUSES; i++) if (canBuses[i] == bus) whichBus = i;
     bus->sendFrameFD(frame);
     addBits(whichBus, frame);
@@ -212,12 +213,14 @@ void CANManager::loop()
     bool canActive = false;  // Variável para detectar atividade CAN
 
     // Calcula carga do barramento a cada 250ms
-    if (millis() > (busLoadTimer + 250)) {
+    if (millis() - busLoadTimer > 250) {
         busLoadTimer = millis();
+        if (busLoad[0].bitsPerQuarter == 0) busLoad[0].bitsPerQuarter = 125000; // evita divisao por zero
         busLoad[0].busloadPercentage = ((busLoad[0].busloadPercentage * 3) + (((busLoad[0].bitsSoFar * 1000) / busLoad[0].bitsPerQuarter) / 10)) / 4;
         //Force busload percentage to be at least 1% if any traffic exists at all. This forces the LED to light up for any traffic.
         if (busLoad[0].busloadPercentage == 0 && busLoad[0].bitsSoFar > 0) busLoad[0].busloadPercentage = 1;
         busLoad[0].bitsPerQuarter = settings.canSettings[0].nomSpeed / 4;
+        if (busLoad[0].bitsPerQuarter == 0) busLoad[0].bitsPerQuarter = 125000;
         busLoad[0].bitsSoFar = 0;
         if(busLoad[0].busloadPercentage > busLoad[1].busloadPercentage){
             //updateBusloadLED(busLoad[0].busloadPercentage);
@@ -227,7 +230,7 @@ void CANManager::loop()
     }
 
     // Limita o número de mensagens processadas por iteração
-    const int MAX_MESSAGES_PER_LOOP = 10; // Ajustável
+    const int MAX_MESSAGES_PER_LOOP = 64; // Ajustável (tamanho da fila de RX da lib)
     int messagesProcessed = 0;
 
     for (int i = 0; i < SysSettings.numBuses; i++)
@@ -240,6 +243,8 @@ void CANManager::loop()
             {
                 canBuses[i]->read(incoming);
                 addBits(i, incoming);
+                // O ELM precisa do ID original: sendFrameToBuffer pode alterar o frame
+                if ( (incoming.id > 0x7DF && incoming.id < 0x7F0) || elmEmulator.getMonitorMode() ) elmEmulator.processCANReply(incoming);
                 displayFrame(incoming, i);
             }
             else
@@ -248,8 +253,6 @@ void CANManager::loop()
                 addBits(i, inFD);
                 displayFrame(inFD, i);
             }
-            
-            if ( (incoming.id > 0x7DF && incoming.id < 0x7F0) || elmEmulator.getMonitorMode() ) elmEmulator.processCANReply(incoming);
 
             wifiLength = wifiGVRET.numAvailableBytes();
             serialLength = serialGVRET.numAvailableBytes();
@@ -268,6 +271,7 @@ void CANManager::loop()
         lastCANActivity = millis();
         warningSent = false; // Reseta o aviso se houver tráfego
         shutdownCanceled = false; // Se houver tráfego CAN, o desligamento é cancelado
+        shutdownSent = false;
         setMosfet(true);
     } else {
         unsigned long lastActivity = lastCANActivity;
@@ -278,28 +282,47 @@ void CANManager::loop()
             // Mantém ligado durante o período inicial
             setMosfet(true);      
         } else {
-            if (timeSinceLastActivity >= TIMEOUT_WARNING && !warningSent)
+            if (timeSinceLastActivity < TIMEOUT_WARNING)
+            {
+                // Houve atividade serial recente: reinicia o ciclo de desligamento
+                warningSent = false;
+                shutdownSent = false;
+            }
+            else if (!warningSent)
             {
                 Logger::console("ShutdownForInactivity");
                 warningSent = true; // Evita repetição do aviso
             }
 
-            if (timeSinceLastActivity >= TIMEOUT_SHUTDOWN)
+            if (timeSinceLastActivity >= TIMEOUT_SHUTDOWN && !shutdownSent)
             {
                 // Aqui o Raspberry deve interpretar esse comando e desligar
                 Logger::console("ShuttingDown");
+                shutdownSent = true;
+            }
 
+            // Espera TIMEOUT_SLEEP_GRACE apos o "ShuttingDown" antes de dormir, para que o
+            // Raspberry ainda consiga responder pela serial (ex.: SHUTDOWN=1)
+            if (timeSinceLastActivity >= (TIMEOUT_SHUTDOWN + TIMEOUT_SLEEP_GRACE))
+            {
                 //digitalWrite(MOSFET_PIN, LOW);  // Desativa o MOSFET
 
                 Serial.println("Entering sleep mode...");
+                Serial.flush(); // garante que a mensagem saia antes de parar os clocks
                 sleeping = true;
                 esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_UART); // Evita acordar pela serial
-                esp_sleep_enable_ext0_wakeup((gpio_num_t)CAN_INT_PIN, 1); // Acorda com atividade no CAN
+                // O RX do CAN fica em nivel alto (recessivo) com o barramento parado e vai a
+                // nivel baixo (dominante) quando ha trafego: acorda em nivel 0.
+                esp_sleep_enable_ext0_wakeup((gpio_num_t)CAN_INT_PIN, 0);
                 esp_light_sleep_start(); // ESP32 dorme
+                esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_EXT0);
+                // ext0 deixa o pino no dominio RTC; devolve para o GPIO digital (RX do TWAI)
+                rtc_gpio_deinit((gpio_num_t)CAN_INT_PIN);
                 sleeping = false; // volta a processar apos acordar
                 Serial.println("Woke from sleep");
                 lastCANActivity = millis();  // evita novo sleep imediato
                 warningSent = false;
+                shutdownSent = false;
                 setMosfet(true);
             }
         }
