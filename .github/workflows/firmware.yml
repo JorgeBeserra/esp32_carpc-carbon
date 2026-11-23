@@ -1,0 +1,141 @@
+name: Firmware
+
+# - Pull request:        compila o firmware e anexa os binários para teste.
+# - Push na main:        compila e, se o CFG_BUILD_NUM de src/config.h ainda não
+#                        tiver release, publica um release "build-<N>" com os .bin.
+#
+# Para lançar uma nova versão: aumente CFG_BUILD_NUM (e CFG_VERSION) em src/config.h
+# e faça o merge na main.
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'lib/**'
+      - 'include/**'
+      - 'platformio.ini'
+      - '.github/workflows/firmware.yml'
+      - '.github/scripts/**'
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'lib/**'
+      - 'include/**'
+      - 'platformio.ini'
+      - '.github/workflows/firmware.yml'
+      - '.github/scripts/**'
+  workflow_dispatch:
+
+concurrency:
+  group: firmware-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PIO_ENV: esp32doit-devkit-v1
+
+jobs:
+  build:
+    name: Compilar
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.version.outputs.build }}
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache do PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: pio-${{ runner.os }}-
+
+      - name: Instalar PlatformIO e esptool
+        run: pip install platformio==6.2.0 esptool==4.8.1
+
+      - name: Ler a versão do firmware
+        id: version
+        run: |
+          eval "$(.github/scripts/firmware_version.sh src/config.h)"
+          echo "Build $FW_BUILD - $FW_VERSION"
+          {
+            echo "build=$FW_BUILD"
+            echo "version=$FW_VERSION"
+            echo "tag=$FW_TAG"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Compilar
+        run: pio run -e "$PIO_ENV"
+
+      - name: Reunir os binários
+        run: .github/scripts/package_firmware.sh ".pio/build/$PIO_ENV" dist
+
+      - name: Anexar os binários
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-build-${{ steps.version.outputs.build }}
+          path: dist/
+          if-no-files-found: error
+
+  release:
+    name: Publicar release
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.build.outputs.tag }}
+      BUILD: ${{ needs.build.outputs.build }}
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - name: Verificar se esta versão já foi publicada
+        id: check
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "O release $TAG já existe: nada a publicar. Aumente CFG_BUILD_NUM em src/config.h para lançar outra versão."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Baixar os binários
+        if: steps.check.outputs.publish == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware-build-${{ needs.build.outputs.build }}
+          path: dist
+
+      - name: Criar o release
+        if: steps.check.outputs.publish == 'true'
+        run: |
+          cat > notes.md <<NOTES
+          Firmware ESP32 CarPC - build $BUILD ($VERSION)
+
+          | Arquivo | Uso |
+          |---|---|
+          | \`firmware-completo.bin\` | Imagem única: gravar em \`0x0\` (instalação do zero) |
+          | \`firmware.bin\` | Só o aplicativo: gravar em \`0x10000\` (atualização) |
+          | \`bootloader.bin\`, \`partitions.bin\`, \`boot_app0.bin\` | Gravar em \`0x1000\`, \`0x8000\` e \`0xe000\` |
+
+          \`\`\`
+          esptool.py --chip esp32 --port /dev/ttyUSB0 write_flash 0x0 firmware-completo.bin
+          \`\`\`
+
+          Commit: $GITHUB_SHA
+          NOTES
+          gh release create "$TAG" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Firmware build $BUILD ($VERSION)" \
+            --notes-file notes.md
