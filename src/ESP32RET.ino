@@ -181,7 +181,8 @@ void setup()
     Serial.println("");
     Serial.println("===================================");
     Serial.println("        MrDIY.ca CAN Shield        ");
-    Serial.println("Version: 1.0.1");
+    Serial.print("Version: ");
+    Serial.println(CFG_VERSION); // mesma versão que o CI usa para publicar o release
     Serial.println("===================================");
     Serial.println("");
     Serial.print("Build number: ");
