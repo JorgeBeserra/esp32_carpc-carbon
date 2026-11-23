@@ -243,8 +243,13 @@ void SerialConsole::handleConfigCmd()
             settings.canSettings[idx].nomSpeed = newValue;
             if (settings.canSettings[idx].enabled) 
             {
-                if (settings.canSettings[idx].fdMode)
-                    canBuses[idx]->begin(settings.canSettings[idx].nomSpeed, settings.canSettings[idx].fdSpeed);
+                //aplica a nova velocidade imediatamente
+                if (settings.canSettings[idx].fdMode && canBuses[idx]->supportsFDMode())
+                    canBuses[idx]->beginFD(settings.canSettings[idx].nomSpeed, settings.canSettings[idx].fdSpeed);
+                else
+                    canBuses[idx]->begin(settings.canSettings[idx].nomSpeed, 255);
+                canBuses[idx]->setListenOnlyMode(settings.canSettings[idx].listenOnly);
+                canBuses[idx]->watchFor();
             }
             writeEEPROM = true;
         } 
@@ -363,15 +368,18 @@ void SerialConsole::handleConfigCmd()
         writeEEPROM = true;
     } else if (cmdString == String("BTNAME")) {
         Logger::console("Setting Bluetooth Name to %s", newString);
-        strcpy((char *)settings.btName, newString);
+        strncpy((char *)settings.btName, newString, sizeof(settings.btName) - 1);
+        settings.btName[sizeof(settings.btName) - 1] = '\0';
         writeEEPROM = true;
     } else if (cmdString == String("SSID")) {
         Logger::console("Setting SSID to %s", newString);
-        strcpy((char *)settings.SSID, newString);
+        strncpy((char *)settings.SSID, newString, sizeof(settings.SSID) - 1);
+        settings.SSID[sizeof(settings.SSID) - 1] = '\0';
         writeEEPROM = true;
     } else if (cmdString == String("WPA2KEY")) {
         Logger::console("Setting WPA2 Key to %s", newString);
-        strcpy((char *)settings.WPA2Key, newString);
+        strncpy((char *)settings.WPA2Key, newString, sizeof(settings.WPA2Key) - 1);
+        settings.WPA2Key[sizeof(settings.WPA2Key) - 1] = '\0';
         writeEEPROM = true;
     } else if (cmdString == String("BRILHO")) {
         Logger::console("Setting BRILHO to %i", newValue);
@@ -539,6 +547,7 @@ bool SerialConsole::handleCANSend(CAN_COMMON &port, char *inputString)
 
     int idVal = strtol(idTok, NULL, 0);
     int lenVal = strtol(lenTok, NULL, 0);
+    if (lenVal < 0 || lenVal > 8) return false; //um frame CAN classico tem no maximo 8 bytes
 
     for (int i = 0; i < lenVal; i++) {
         dataTok = strtok(NULL, ",");
@@ -548,7 +557,7 @@ bool SerialConsole::handleCANSend(CAN_COMMON &port, char *inputString)
 
     //things seem good so try to send the frame.
     frame.id = idVal;
-    if (idVal >= 0x7FF) frame.extended = true;
+    if (idVal > 0x7FF) frame.extended = true;
     else frame.extended = false;
     frame.rtr = 0;
     frame.length = lenVal;

@@ -8,16 +8,34 @@ static uint8_t bin2bcd(uint8_t val) {
     return val + 6 * (val / 10);
 }
 
+// O RTC e lido pela tarefa do ADC e pela tarefa principal (Logger). Cada acesso sao duas
+// transacoes I2C, entao precisam ser serializadas para nao misturar os dados.
+static SemaphoreHandle_t rtcMutex = nullptr;
+
+static bool rtcLock() {
+    if (!rtcMutex) return true; // begin() ainda nao foi chamado (somente uma tarefa rodando)
+    return xSemaphoreTake(rtcMutex, pdMS_TO_TICKS(200)) == pdTRUE;
+}
+
+static void rtcUnlock() {
+    if (rtcMutex) xSemaphoreGive(rtcMutex);
+}
+
 bool RTC_DS1307::begin() {
+    if (!rtcMutex) rtcMutex = xSemaphoreCreateMutex();
     Wire.begin();
     return true;
 }
 
 bool RTC_DS1307::read(DateTime &dt) {
+    if (!rtcLock()) return false;
     Wire.beginTransmission(0x68);
     Wire.write(0);
-    if (Wire.endTransmission() != 0) return false;
-    if (Wire.requestFrom(0x68, 7) != 7) return false;
+    bool ok = (Wire.endTransmission() == 0) && (Wire.requestFrom(0x68, 7) == 7);
+    if (!ok) {
+        rtcUnlock();
+        return false;
+    }
     dt.second = bcd2bin(Wire.read() & 0x7F);
     dt.minute = bcd2bin(Wire.read());
     dt.hour = bcd2bin(Wire.read() & 0x3F);
@@ -25,10 +43,15 @@ bool RTC_DS1307::read(DateTime &dt) {
     dt.day = bcd2bin(Wire.read());
     dt.month = bcd2bin(Wire.read());
     dt.year = bcd2bin(Wire.read()) + 2000;
+    rtcUnlock();
     return true;
 }
 
 bool RTC_DS1307::write(const DateTime &dt) {
+    //valores fora da faixa gerariam BCD invalido e corromperiam o relogio
+    if (dt.year < 2000 || dt.year > 2099 || dt.month < 1 || dt.month > 12 ||
+        dt.day < 1 || dt.day > 31 || dt.hour > 23 || dt.minute > 59 || dt.second > 59) return false;
+    if (!rtcLock()) return false;
     Wire.beginTransmission(0x68);
     Wire.write(0);
     Wire.write(bin2bcd(dt.second));
@@ -38,12 +61,14 @@ bool RTC_DS1307::write(const DateTime &dt) {
     Wire.write(bin2bcd(dt.day));
     Wire.write(bin2bcd(dt.month));
     Wire.write(bin2bcd(dt.year - 2000));
-    return Wire.endTransmission() == 0;
+    bool ok = Wire.endTransmission() == 0;
+    rtcUnlock();
+    return ok;
 }
 
 String RTC_DS1307::format(const DateTime &dt) {
-    char buf[20];
-    sprintf(buf, "%04d-%02d-%02dT%02d:%02d:%02d",
+    char buf[40];
+    snprintf(buf, sizeof(buf), "%04d-%02d-%02dT%02d:%02d:%02d",
             dt.year, dt.month, dt.day,
             dt.hour, dt.minute, dt.second);
     return String(buf);

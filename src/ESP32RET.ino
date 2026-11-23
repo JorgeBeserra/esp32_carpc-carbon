@@ -119,7 +119,8 @@ void loadSettings()
     if (nvPrefs.getString("SSID", settings.SSID, 32) == 0)
     {
         //strcpy(settings.SSID, deviceName);
-        strcat(settings.SSID, "Sabidos");
+        strncpy(settings.SSID, "Sabidos", sizeof(settings.SSID) - 1);
+        settings.SSID[sizeof(settings.SSID) - 1] = '\0';
    }
 
     if (nvPrefs.getString("wpa2Key", settings.WPA2Key, 64) == 0)
@@ -128,8 +129,9 @@ void loadSettings()
     }
     if (nvPrefs.getString("btname", settings.btName, 32) == 0)
     {
-        strcpy(settings.btName, "ELM327-");
-        strcat(settings.btName, deviceName);
+        strncpy(settings.btName, "ELM327-", sizeof(settings.btName) - 1);
+        settings.btName[sizeof(settings.btName) - 1] = '\0';
+        strncat(settings.btName, deviceName, sizeof(settings.btName) - strlen(settings.btName) - 1);
     }
 
     char buff[80];
@@ -179,7 +181,8 @@ void setup()
     Serial.println("");
     Serial.println("===================================");
     Serial.println("        MrDIY.ca CAN Shield        ");
-    Serial.println("Version: 1.0.1");
+    Serial.print("Version: ");
+    Serial.println(CFG_VERSION); // mesma versão que o CI usa para publicar o release
     Serial.println("===================================");
     Serial.println("");
     Serial.print("Build number: ");
@@ -197,7 +200,7 @@ void setup()
     xTaskCreatePinnedToCore(
         adc_task,         // Função da tarefa
         "ADC Task",       // Nome
-        2048,             // Tamanho da pilha
+        4096,             // Tamanho da pilha (snprintf + String + I2C do RTC)
         NULL,             // Parâmetros
         1,                // Prioridade
         NULL,             // Handle
@@ -253,6 +256,12 @@ fastest and safest with limited function calls
 // ADC Click: 3890
 // ADC Click: 3892
 
+//2025-07-30T17:09:32 - ADC Click: 3918
+//2025-07-30T17:09:32 - ADC Click: 3919
+//2025-07-30T17:09:32 - ADC Click: 3919
+//2025-07-30T17:09:32 - ADC Click: 3919
+//2025-07-30T17:09:32 - ADC Click: 3921
+
 // volume -
 
 // ADC Click: 4048
@@ -270,6 +279,13 @@ fastest and safest with limited function calls
 // ADC Click: 4048
 // ADC Click: 4047
 
+//2025-07-30T17:09:34 - ADC Click: 4079
+//2025-07-30T17:09:35 - ADC Click: 4075
+//2025-07-30T17:09:35 - ADC Click: 4072
+//2025-07-30T17:09:35 - ADC Click: 4075
+//2025-07-30T17:09:36 - ADC Click: 4074
+//2025-07-30T17:09:36 - ADC Click: 4073
+
 
 // Proxima Musica
 
@@ -279,15 +295,14 @@ fastest and safest with limited function calls
 // ADC Click: 3665
 // ADC Click: 3668
 // ADC Click: 3665
-// ADC Click: 3666
-// ADC Click: 3667
-// ADC Click: 3667
-// ADC Click: 3665
-// ADC Click: 3665
-// ADC Click: 3664
-// ADC Click: 3666
-// ADC Click: 3666
-// ADC Click: 3663
+
+//2025-07-30T17:09:38 - ADC Click: 3695
+//2025-07-30T17:09:38 - ADC Click: 3695
+//2025-07-30T17:09:38 - ADC Click: 3696
+//2025-07-30T17:09:38 - ADC Click: 3696
+//2025-07-30T17:09:39 - ADC Click: 3701
+//2025-07-30T17:09:39 - ADC Click: 3696
+
 
 
 // musica anterior
@@ -303,31 +318,13 @@ fastest and safest with limited function calls
 // ADC Click: 3357
 // ADC Click: 3358
 // ADC Click: 3355
-// ADC Click: 3357
-// ADC Click: 3355
-// ADC Click: 3359
-// ADC Click: 3358
-// ADC Click: 3357
-// ADC Click: 3358
-// ADC Click: 3359
-// ADC Click: 3356
-// ADC Click: 3359
-// ADC Click: 3356
-// ADC Click: 3359
-// ADC Click: 3360
-// ADC Click: 3358
-// ADC Click: 3359
-// ADC Click: 3357
-// ADC Click: 3354
-// ADC Click: 3359
-// ADC Click: 3353
-// ADC Click: 3353
-// ADC Click: 3356
-// ADC Click: 3355
-// ADC Click: 3356
-// ADC Click: 3354
-// ADC Click: 3357
-// ADC Click: 3354
+
+
+//2025-07-30T17:09:36 - ADC Click: 3389
+//2025-07-30T17:09:36 - ADC Click: 3390
+//2025-07-30T17:09:37 - ADC Click: 3391
+//2025-07-30T17:09:37 - ADC Click: 3389
+//2025-07-30T17:09:37 - ADC Click: 3388
 
 
 // muta
@@ -338,25 +335,27 @@ fastest and safest with limited function calls
 // ADC Click: 4095
 // ADC Click: 4095
 // ADC Click: 4095
-// ADC Click: 4095
-// ADC Click: 4095
-// ADC Click: 4095
-// ADC Click: 4095
-// ADC Click: 4095
-// ADC Click: 4095
-// ADC Click: 4095
-// ADC Click: 4095
-// ADC Click: 4095
+
+
+//2025-07-30T17:09:40 - ADC Click: 4095
+//2025-07-30T17:09:41 - ADC Click: 4095
+//2025-07-30T17:09:41 - ADC Click: 4095
+//2025-07-30T17:09:42 - ADC Click: 4095
+//2025-07-30T17:09:42 - ADC Click: 4095
+//2025-07-30T17:09:42 - ADC Click: 4095
+//2025-07-30T17:09:43 - ADC Click: 4095
 
 
 
 void adc_task(void *pvParameters) {
-    static int ultimoValorADC = -1;       // Valor inicial improvável
+    static int ultimoValorADC = -1;       // Maior leitura durante o toque atual (identifica o botão)
     static uint32_t lastResistanceCheck = 0;
     static uint32_t pressStartTime = 0;   // Marca o início da pressão
     static bool isPressed = false;        // Estado do botão
+    static bool holdSent = false;         // Já enviou "Hold" neste toque (então não é um click)
     static uint32_t lastHoldSent = 0;     // Última vez que "Hold" foi enviado
     const uint32_t HOLD_INTERVAL = 500000; // Intervalo de 500ms para "Hold"
+    const uint32_t HOLD_THRESHOLD = 750000; // Acima de 750ms pressionado vira "Hold"
 
     while (1) {
         if (micros() - lastResistanceCheck > 100000) { // 100ms para maior responsividade
@@ -371,45 +370,36 @@ void adc_task(void *pvParameters) {
             if (valorADC >= 2380 && valorADC <= 2490) { // Neutro (ajustado com base nos logs)
                 if (isPressed) { // Botão foi solto
                     uint32_t pressDuration = micros() - pressStartTime;
-                    if (pressDuration <= 750000 && ultimoValorADC > 2450) { // Toque rápido
+                    if (pressDuration <= HOLD_THRESHOLD && !holdSent) { // Toque rápido
                         char buffer[64];
                         String now = rtc.nowString();
                         snprintf(buffer, sizeof(buffer), "%s - ADC Click: %d\n", now.c_str(), ultimoValorADC);
                         Serial.write(buffer);
                     }
                     isPressed = false;
-                    ultimoValorADC = valorADC; // Atualiza para o valor neutro
                 }
-            } else if (valorADC > 2450) { // Só processa valores > 2450 (botão pressionado)
+            } else if (valorADC > 2490) { // Acima da faixa neutra = botão pressionado
                 if (!isPressed) { // Botão recém-pressionado
                     pressStartTime = micros();
                     isPressed = true;
-                    lastHoldSent = 0; // Reseta o temporizador de "Hold"
-
+                    holdSent = false;
+                    ultimoValorADC = valorADC;
                 } else { // Botão já está pressionado
+                    // A leitura pode cair no meio da transição ao apertar/soltar. Como todos os
+                    // botões ficam acima do neutro, o maior valor lido é o do botão.
+                    if (valorADC > ultimoValorADC) ultimoValorADC = valorADC;
+
                     uint32_t pressDuration = micros() - pressStartTime;
-                    if (pressDuration > 750000) { // 500ms = pressão mantida
-                        if (micros() - lastHoldSent >= HOLD_INTERVAL) { // Envia a cada 500ms
+                    if (pressDuration > HOLD_THRESHOLD) { // pressão mantida
+                        if (!holdSent || (micros() - lastHoldSent >= HOLD_INTERVAL)) { // Envia a cada 500ms
                             char buffer[64];
                             String now = rtc.nowString();
-                            snprintf(buffer, sizeof(buffer), "%s - ADC Hold: %d\n", now.c_str(), valorADC);
+                            snprintf(buffer, sizeof(buffer), "%s - ADC Hold: %d\n", now.c_str(), ultimoValorADC);
                             Serial.write(buffer);
                             lastHoldSent = micros();
-                            ultimoValorADC = valorADC;
+                            holdSent = true;
                         }
                     }
-                }
-
-                if (isPressed) { // Botão foi solto
-                    uint32_t pressDuration = micros() - pressStartTime;
-                    if (pressDuration <= 750000 && valorADC > 2450) { // Toque rápido
-                        char buffer[64];
-                        String now = rtc.nowString();
-                        snprintf(buffer, sizeof(buffer), "%s - ADC Click: %d\n", now.c_str(), valorADC);
-                        Serial.write(buffer);
-                    }
-                    isPressed = false;
-                    ultimoValorADC = valorADC; // Atualiza para o valor neutro
                 }
             }
         }
@@ -474,5 +464,7 @@ void loop()
 
     elmEmulator.loop();
 
-    vTaskDelay(pdMS_TO_TICKS(20)); // Cede controle ao FreeRTOS no loop principal
+    // canManager.loop() ja cede 1ms. Um atraso longo aqui faz a fila de RX do CAN (64 frames)
+    // transbordar em barramentos movimentados e perder mensagens.
+    vTaskDelay(pdMS_TO_TICKS(2)); // Cede controle ao FreeRTOS no loop principal
 }

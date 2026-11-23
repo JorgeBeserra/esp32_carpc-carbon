@@ -1,3 +1,7 @@
+/*
+ * can_manager.h
+ */
+
 #pragma once
 #include "config.h"
 
@@ -23,7 +27,6 @@ public:
     void displayFrame(CAN_FRAME_FD &frame, int whichBus);
     void loop();
     void setup();
-    static void wakeUp();
 
 private:
     BUSLOAD busLoad[NUM_BUSES];

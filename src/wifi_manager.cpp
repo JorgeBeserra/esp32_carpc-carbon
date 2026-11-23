@@ -21,10 +21,10 @@ void WiFiManager::setup()
     {        
         WiFi.mode(WIFI_STA);
         WiFi.setSleep(false); //sleeping could cause delays
-        //WiFi.begin((const char *)settings.SSID, (const char *)settings.WPA2Key);
         Serial.println("Conectando ao Wi-Fi...");
         WiFi.setAutoReconnect(true);
-        WiFi.begin("Sabidos", "23Seb10STE5aNT");
+        //usa as credenciais configuradas (comandos SSID= / WPA2KEY= do console)
+        WiFi.begin((const char *)settings.SSID, (const char *)settings.WPA2Key);
 
         int retries = 0;
         WiFiEventId_t eventID = WiFi.onEvent([this](WiFiEvent_t event, WiFiEventInfo_t info) 
