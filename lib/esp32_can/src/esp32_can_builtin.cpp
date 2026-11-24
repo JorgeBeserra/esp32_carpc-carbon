@@ -101,6 +101,16 @@ void CAN_WatchDog_Builtin( void *pvParameters )
                     printf("Could not initiate bus recovery!\n");
                 }
             }
+            else if (status_info.state == TWAI_STATE_STOPPED && espCan->readyForTraffic)
+            {
+                //Terminada a recuperacao de bus-off o controlador fica parado. Sem este
+                //twai_start() o CAN nunca mais recebe nada ate reiniciar a placa.
+                //(readyForTraffic so e falso quando o proprio codigo parou o driver.)
+                if (twai_start() == ESP_OK)
+                {
+                    printf("CAN bus recovered, driver restarted\n");
+                }
+            }
         }
     }
 }
@@ -238,6 +248,10 @@ void ESP32CAN::_init()
         if (debuggingMode) Serial.println("task low level rx created.");
         xTaskCreatePinnedToCore(&CAN_WatchDog_Builtin, "CAN_WD_BI", 2048, this, 10, NULL, 1);
         if (debuggingMode) Serial.println("task watchdog created.");
+        //this task implements our better filtering on top of the TWAI library. Accept all frames then filter in here.
+        //It is created only once: init() runs on every begin() (each time a tool like SavvyCAN reconfigures the bus)
+        //and a new copy each time leaked its stack and made several tasks compete for the same frames.
+        xTaskCreatePinnedToCore(&task_LowLevelRX, "CAN_LORX", 4096, this, 19, NULL, 1);
         initializedResources = true;
     }
     if (debuggingMode) Serial.println("_init done");
@@ -261,8 +275,6 @@ uint32_t ESP32CAN::init(uint32_t ul_baudrate)
             printf("Failed to reconfigure alerts");
         }
     }
-    //this task implements our better filtering on top of the TWAI library. Accept all frames then filter in here VVVVV
-    xTaskCreatePinnedToCore(&task_LowLevelRX, "CAN_LORX", 4096, this, 19, NULL, 1);
     readyForTraffic = true;
     return ul_baudrate;
 }

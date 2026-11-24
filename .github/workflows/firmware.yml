@@ -46,14 +46,14 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
       - name: Cache do PlatformIO
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.platformio
           key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
@@ -80,7 +80,7 @@ jobs:
         run: .github/scripts/package_firmware.sh ".pio/build/$PIO_ENV" dist
 
       - name: Anexar os binários
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: firmware-build-${{ steps.version.outputs.build }}
           path: dist/
@@ -111,7 +111,7 @@ jobs:
 
       - name: Baixar os binários
         if: steps.check.outputs.publish == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: firmware-build-${{ needs.build.outputs.build }}
           path: dist
